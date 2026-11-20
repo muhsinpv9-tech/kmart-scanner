@@ -1,18 +1,22 @@
-// KMART - Barcode -> Qty -> List -> Excel
-// New Sheet: item master
-
+// K MART - Item Master - Matched to 127-line index.html
 const SHEET_ID = "1ZavPmJyh07AYmTfFzi5JwfUzCsBnKAGjVOEhPMF8oxY";
 const GID = "0";
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
 
 let PRODUCTS = [];
-let LIST = JSON.parse(localStorage.getItem('kmart_list') || '[]');
+let html5QrCode = null;
+let cameraOn = false;
 
-const searchInput = document.getElementById('searchInput');
-const resultsDiv = document.getElementById('results');
-const listDiv = document.getElementById('listItems');
-const listCount = document.getElementById('listCount');
-const totalEl = document.getElementById('totalAmount');
+function setStatus(text, color){
+  const t = document.getElementById('status-text');
+  const d = document.getElementById('status-dot');
+  if(t) t.textContent = text;
+  if(d) d.className = `w-2.5 h-2.5 rounded-full animate-pulse ${color || 'bg-emerald-500'}`;
+  const lu = document.getElementById('last-update-container');
+  const lut = document.getElementById('last-update-time');
+  if(lu) lu.classList.remove('hidden');
+  if(lut) lut.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
 
 function parseCSV(text){
   const rows=[]; let row=[], cur='', inQ=false;
@@ -27,132 +31,190 @@ function parseCSV(text){
     }
     cur+=c;
   }
-  if(cur!==''||row.length) {row.push(cur); rows.push(row);}
+  if(cur!==''||row.length){row.push(cur); rows.push(row);}
   return rows;
 }
 
 async function loadProducts(){
-  if(resultsDiv) resultsDiv.innerHTML = '<p style="text-align:center;padding:20px;">Loading items...</p>';
+  setStatus('Syncing...', 'bg-orange-500');
   try{
     const res = await fetch(SHEET_URL);
     const text = await res.text();
     const rows = parseCSV(text);
     const header = rows[0].map(h=>h.trim().toLowerCase());
-    const idx = (name)=> header.findIndex(h=>h.includes(name));
+    const idx = (n)=> header.findIndex(h=>h.includes(n));
     const iBarcode = idx('barcode');
     const iName = idx('itemname');
     const iMRP = idx('mrp');
     const iCost = idx('costprice');
     const iGroup = idx('groupname');
     const iStock = idx('livestock');
-
+    const iCF = idx('cf');
+    const iNo = idx('itemno');
     PRODUCTS = rows.slice(1).filter(r=>r[iName]).map(r=>({
       barcode: (r[iBarcode]||'').trim(),
       name: (r[iName]||'').trim(),
       mrp: parseFloat(r[iMRP])||0,
       cost: parseFloat(r[iCost])||0,
       group: (r[iGroup]||'').trim(),
-      stock: (r[iStock]||'').trim()
+      stock: (r[iStock]||'').trim(),
+      cf: (r[iCF]||'').trim(),
+      itemNo: (r[iNo]||'').trim()
     }));
-    console.log('Loaded', PRODUCTS.length);
-    renderList();
-    if(resultsDiv) resultsDiv.innerHTML = `<p style="text-align:center;padding:20px;color:#666;">${PRODUCTS.length} items loaded. Barcode scan cheyyu / Search cheyyu.</p>`;
+    setStatus(`${PRODUCTS.length} items loaded • Ready`, 'bg-emerald-500');
   }catch(e){
     console.error(e);
-    if(resultsDiv) resultsDiv.innerHTML = '<p style="text-align:center;padding:20px;color:red;">Connection Error - Sheet Share "Anyone with link" aakkiyittundo ennu nokku.</p>';
+    setStatus('Connection Error - Sheet Share nokku', 'bg-red-500');
   }
 }
 
-function renderResults(items){
-  if(!resultsDiv) return;
-  if(!items.length){ resultsDiv.innerHTML='<p style="text-align:center;padding:20px;">Item kittiyilla</p>'; return; }
-  resultsDiv.innerHTML = items.slice(0,50).map((p,i)=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #eee;">
-      <div><b>${p.name}</b><br><small>${p.barcode} • ${p.group} • Stock: ${p.stock} • ₹${p.mrp}</small></div>
-      <button onclick="addToList('${p.barcode}')" style="background:#1a7a1a;color:#fff;border:none;padding:8px 14px;border-radius:8px;">+ Add</button>
+function hideAll(){
+  ['result-container','list-container','no-result'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.add('hidden');
+  });
+}
+
+function showSingle(p){
+  hideAll();
+  const c=document.getElementById('result-container');
+  if(!c) return;
+  c.classList.remove('hidden');
+  document.getElementById('result-title').textContent = p.name;
+  document.getElementById('result-subtitle').textContent = `${p.group} • Barcode: ${p.barcode}`;
+  document.getElementById('result-details').innerHTML = `
+    <div class="flex justify-between py-3"><span class="text-slate-500 text-sm">MRP</span><b>AED ${p.mrp.toFixed(2)}</b></div>
+    <div class="flex justify-between py-3"><span class="text-slate-500 text-sm">Cost Price</span><b>AED ${p.cost.toFixed(2)}</b></div>
+    <div class="flex justify-between py-3"><span class="text-slate-500 text-sm">Live Stock</span><b>${p.stock}</b></div>
+    <div class="flex justify-between py-3"><span class="text-slate-500 text-sm">CF</span><b>${p.cf || '-'}</b></div>
+    <div class="flex justify-between py-3"><span class="text-slate-500 text-sm">Barcode</span><b class="font-mono">${p.barcode}</b></div>
+  `;
+  const btn=document.getElementById('open-group-popup-btn');
+  if(btn){ btn.onclick = ()=> openGroupPopup(p); btn.classList.remove('hidden'); }
+  if(window.lucide) lucide.createIcons();
+}
+
+function showList(items){
+  hideAll();
+  const c=document.getElementById('list-container');
+  const list=document.getElementById('match-list');
+  if(!c||!list) return;
+  c.classList.remove('hidden');
+  list.innerHTML = items.slice(0,50).map(p=>`
+    <div onclick="showSingleByBarcode('${p.barcode}')" class="p-4 flex justify-between items-center cursor-pointer active:bg-slate-50 bg-white">
+      <div><div class="font-bold text-slate-900">${p.name}</div><div class="text-xs text-slate-400">${p.barcode} • ${p.group} • Stock: ${p.stock}</div></div>
+      <div class="text-right"><div class="font-black text-slate-900">AED ${p.mrp.toFixed(2)}</div><div class="text-[10px] text-slate-400">TAP TO VIEW</div></div>
     </div>`).join('');
 }
 
-function addToList(barcode){
-  const p = PRODUCTS.find(x=>x.barcode===barcode);
-  if(!p) return;
-  const ex = LIST.find(x=>x.barcode===barcode);
-  if(ex) ex.qty += 1;
-  else LIST.push({barcode:p.barcode, name:p.name, mrp:p.mrp, cost:p.cost, qty:1});
-  saveList(); renderList();
-  if(searchInput) searchInput.value='';
-  if(resultsDiv) resultsDiv.innerHTML='<p style="text-align:center;padding:10px;color:green;">Added: '+p.name+'</p>';
+function showNoResult(){
+  hideAll();
+  const el=document.getElementById('no-result');
+  if(el) el.classList.remove('hidden');
 }
 
-function changeQty(barcode, delta){
-  const it = LIST.find(x=>x.barcode===barcode);
-  if(!it) return;
-  it.qty += delta;
-  if(it.qty<=0) LIST = LIST.filter(x=>x.barcode!==barcode);
-  saveList(); renderList();
+function handleSearch(){
+  const inp=document.getElementById('unified-search-input');
+  if(!inp) return;
+  const q=inp.value.trim().toLowerCase();
+  if(q.length<2){ hideAll(); return; }
+  if(!PRODUCTS.length) return;
+  const exact = PRODUCTS.find(p=>p.barcode===q);
+  if(exact){ showSingle(exact); return; }
+  const filtered = PRODUCTS.filter(p=> p.name.toLowerCase().includes(q) || p.barcode.includes(q));
+  if(filtered.length===1) showSingle(filtered[0]);
+  else if(filtered.length>1) showList(filtered);
+  else showNoResult();
 }
 
-function removeItem(barcode){
-  LIST = LIST.filter(x=>x.barcode!==barcode);
-  saveList(); renderList();
+function showSingleByBarcode(barcode){
+  const p=PRODUCTS.find(x=>x.barcode===barcode);
+  if(p) showSingle(p);
 }
 
-function saveList(){ localStorage.setItem('kmart_list', JSON.stringify(LIST)); }
-
-function renderList(){
-  if(!listDiv) return;
-  let total=0;
-  listDiv.innerHTML = LIST.map(it=>{
-    const amt = it.mrp*it.qty; total+=amt;
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #eee;">
-      <div><b>${it.name}</b><br><small>₹${it.mrp} x ${it.qty} = ₹${amt.toFixed(2)}</small></div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <button onclick="changeQty('${it.barcode}',-1)" style="padding:6px 10px;">-</button>
-        <b>${it.qty}</b>
-        <button onclick="changeQty('${it.barcode}',1)" style="padding:6px 10px;">+</button>
-        <button onclick="removeItem('${it.barcode}')" style="padding:6px 10px;color:red;">✕</button>
-      </div></div>`;
-  }).join('') || '<p style="text-align:center;padding:20px;">List empty aanu</p>';
-  if(listCount) listCount.textContent = LIST.length + ' items';
-  if(totalEl) totalEl.textContent = 'Total: ₹' + total.toFixed(2);
+function openGroupPopup(p){
+  const modal=document.getElementById('item-modal');
+  if(!modal) return;
+  modal.classList.remove('hidden');
+  document.getElementById('popup-title').textContent = p.name;
+  document.getElementById('popup-subtitle').textContent = p.group;
+  document.getElementById('popup-summary').innerHTML = `
+    <div class="bg-slate-50 p-2 rounded-xl text-center"><div class="text-slate-400">MRP</div><b>AED ${p.mrp.toFixed(2)}</b></div>
+    <div class="bg-slate-50 p-2 rounded-xl text-center"><div class="text-slate-400">Cost</div><b>AED ${p.cost.toFixed(2)}</b></div>
+    <div class="bg-slate-50 p-2 rounded-xl text-center"><div class="text-slate-400">Stock</div><b>${p.stock}</b></div>`;
+  document.getElementById('popup-rows').innerHTML = `
+    <tr><td class="px-3 py-2">${p.cf||'-'}</td><td class="px-3 py-2 font-mono">${p.barcode}</td><td class="px-3 py-2 text-right">${p.cost.toFixed(2)}</td><td class="px-3 py-2 text-right">${p.mrp.toFixed(2)}</td><td class="px-3 py-2 text-right">${p.stock}</td></tr>`;
+  const share=document.getElementById('share-btn');
+  if(share){
+    share.onclick = ()=>{
+      const txt = `${p.name}\nBarcode: ${p.barcode}\nMRP: AED ${p.mrp.toFixed(2)}\nStock: ${p.stock}`;
+      if(navigator.share) navigator.share({text:txt});
+      else { navigator.clipboard.writeText(txt); alert('Copied!'); }
+    };
+  }
+  if(window.lucide) lucide.createIcons();
 }
 
-function exportExcel(){
-  if(!LIST.length){ alert('List empty aanu'); return; }
-  let csv = 'Barcode,Item Name,MRP,Qty,Amount\n';
-  LIST.forEach(it=>{ csv += `"${it.barcode}","${it.name}",${it.mrp},${it.qty},${(it.mrp*it.qty).toFixed(2)}\n`; });
-  const blob = new Blob([csv], {type:'text/csv'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'kmart-list-' + new Date().toISOString().slice(0,10) + '.csv';
-  a.click();
+function closeItemModal(){
+  const m=document.getElementById('item-modal');
+  if(m) m.classList.add('hidden');
 }
 
+async function toggleCamera(){
+  const cont=document.getElementById('reader-container');
+  if(cameraOn){ stopCamera(); return; }
+  cont.classList.remove('hidden');
+  cameraOn=true;
+  html5QrCode = new Html5Qrcode("reader");
+  try{
+    await html5QrCode.start({facingMode:"environment"}, {fps:10, qrbox:{width:250,height:150}},
+      (decoded)=>{
+        const inp=document.getElementById('unified-search-input');
+        if(inp) inp.value=decoded;
+        handleSearch();
+        stopCamera();
+      }, ()=>{});
+  }catch(e){ console.error(e); stopCamera(); }
+}
+
+async function stopCamera(){
+  if(html5QrCode){
+    try{ await html5QrCode.stop(); await html5QrCode.clear(); }catch(e){}
+    html5QrCode=null;
+  }
+  cameraOn=false;
+  const cont=document.getElementById('reader-container');
+  if(cont) cont.classList.add('hidden');
+}
+
+const voiceBtn=document.getElementById('voice-btn');
+if(voiceBtn){
+  voiceBtn.addEventListener('click', ()=>{
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ alert('Voice not supported'); return; }
+    const rec=new SR(); rec.lang='en-US';
+    rec.onresult=(e)=>{
+      const inp=document.getElementById('unified-search-input');
+      if(inp) inp.value=e.results[0][0].transcript;
+      handleSearch();
+    };
+    rec.start();
+  });
+}
+
+const searchInput=document.getElementById('unified-search-input');
 if(searchInput){
-  searchInput.addEventListener('input', e=>{
-    const q = e.target.value.trim().toLowerCase();
-    if(q.length<2){ return; }
-    // Barcode aanel exact match
-    const exact = PRODUCTS.find(p=>p.barcode===q);
-    if(exact){ addToList(exact.barcode); return; }
-    const filtered = PRODUCTS.filter(p=> p.name.toLowerCase().includes(q) || p.barcode.includes(q));
-    renderResults(filtered);
-  });
   searchInput.addEventListener('keydown', e=>{
-    if(e.key==='Enter'){
-      const q = e.target.value.trim();
-      const exact = PRODUCTS.find(p=>p.barcode===q);
-      if(exact) addToList(exact.barcode);
-    }
+    if(e.key==='Enter') handleSearch();
   });
 }
 
-const exportBtn = document.getElementById('exportBtn');
-if(exportBtn) exportBtn.addEventListener('click', exportExcel);
+window.handleSearch=handleSearch;
+window.toggleCamera=toggleCamera;
+window.stopCamera=stopCamera;
+window.closeItemModal=closeItemModal;
+window.showSingleByBarcode=showSingleByBarcode;
+window.openGroupPopup=openGroupPopup;
 
-window.addToList = addToList;
-window.changeQty = changeQty;
-window.removeItem = removeItem;
-window.exportExcel = exportExcel;
-
+if(window.lucide) lucide.createIcons();
 loadProducts();
