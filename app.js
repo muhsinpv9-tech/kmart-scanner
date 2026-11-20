@@ -1,16 +1,10 @@
-/* --------------------------------------------------
-   GLOBAL STATE - PAZHAYA POLE + LIST
--------------------------------------------------- */
 let inventory = [];
 let headers = [];
 let html5QrCode = null;
 let currentGroupRows = [];
-let collectedList = []; // PUTHIYA LIST
+let collectedList = [];
 let currentPicked = null;
 
-/* --------------------------------------------------
-   INITIALIZATION
--------------------------------------------------- */
 window.onload = function () {
   fetchData();
   initCollectedUI();
@@ -20,9 +14,6 @@ window.onload = function () {
   lucide.createIcons();
 };
 
-/* --------------------------------------------------
-   CAMERA SYSTEM - PAZHAYA POLE THANNE
--------------------------------------------------- */
 function toggleCamera() {
   const container = document.getElementById("reader-container");
   if (!container.classList.contains("hidden")) stopCamera();
@@ -48,9 +39,6 @@ function onScanSuccess(decodedText) {
   if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }
 
-/* --------------------------------------------------
-   FETCH - GOOGLE SHEET KALANJU, products.json MAIN BRANCH-IL NINNU
--------------------------------------------------- */
 async function fetchData() {
   const statusText = document.getElementById("status-text");
   const statusDot = document.getElementById("status-dot");
@@ -58,7 +46,6 @@ async function fetchData() {
   statusText.innerText = "Syncing…";
   statusDot.className = "w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse";
   try {
-    // 1. products.json nokkum - main branch-il thanne
     const response = await fetch("products.json");
     if (!response.ok) throw new Error("products.json not found");
     const data = await response.json();
@@ -76,9 +63,6 @@ async function fetchData() {
   }
 }
 
-/* --------------------------------------------------
-   SEARCH ENGINE - PAZHAYA POLE THANNE, ONNUM MAATTILLA
--------------------------------------------------- */
 function handleSearch() {
   const term = document.getElementById("unified-search-input").value.trim().toLowerCase();
   const resCon = document.getElementById("result-container");
@@ -109,7 +93,6 @@ function handleSearch() {
     const groupRows = completeGroupByName(groupNames[0]);
     currentGroupRows = groupRows;
     renderSingleGroup(groupRows);
-    // Barcode exact match aanenkil Qty choykku
     if (/^\d+$/.test(term)) showQtyForCurrent(groupRows);
   } else {
     renderGroupList(groups);
@@ -119,9 +102,6 @@ function completeGroupByName(itemName) {
   return inventory.filter((row) => String(row["ItemName"] || "").trim() === itemName);
 }
 
-/* --------------------------------------------------
-   RENDER SINGLE GROUP - PAZHAYA POLE
--------------------------------------------------- */
 function renderSingleGroup(groupRows) {
   const container = document.getElementById("result-container");
   const titleEl = document.getElementById("result-title");
@@ -144,9 +124,6 @@ function renderSingleGroup(groupRows) {
   lucide.createIcons();
 }
 
-/* --------------------------------------------------
-   MULTIPLE MATCH LIST - PAZHAYA POLE
--------------------------------------------------- */
 function renderGroupList(groups) {
   const container = document.getElementById("list-container");
   const listWrap = document.getElementById("match-list");
@@ -163,9 +140,6 @@ function renderGroupList(groups) {
   lucide.createIcons();
 }
 
-/* --------------------------------------------------
-   POPUP MODAL - PAZHAYA POLE
--------------------------------------------------- */
 function openItemModal(groupRows) {
   const modal = document.getElementById("item-modal");
   const titleEl = document.getElementById("popup-title");
@@ -195,9 +169,6 @@ function openItemModal(groupRows) {
 }
 function closeItemModal() { document.getElementById("item-modal").classList.add("hidden"); }
 
-/* --------------------------------------------------
-   SHARE POPUP AS IMAGE - PAZHAYA POLE
--------------------------------------------------- */
 document.getElementById("share-btn").onclick = async () => {
   const card = document.getElementById("popup-card-wrapper");
   if (!card) return;
@@ -213,9 +184,6 @@ document.getElementById("share-btn").onclick = async () => {
   } catch (err) { alert("Sharing failed."); }
 };
 
-/* --------------------------------------------------
-   CSV PARSER - VEENDAMENKIL IRUKKATTE
--------------------------------------------------- */
 function parseCSV(text) {
   const lines = text.split(/\r?\n/); const head = splitCSVLine(lines[0]); const data = [];
   for (let i = 1; i < lines.length; i++) { const line = lines[i].trim(); if (!line) continue; const values = splitCSVLine(line); const obj = {}; head.forEach((h, idx) => { obj[h.trim()] = values[idx] ? values[idx].trim() : ""; }); data.push(obj); }
@@ -227,9 +195,6 @@ function splitCSVLine(line) {
   parts.push(current); return parts;
 }
 
-/* --------------------------------------------------
-   VOICE SEARCH - PAZHAYA POLE
--------------------------------------------------- */
 let recognition = null;
 if ("webkitSpeechRecognition" in window) {
   recognition = new webkitSpeechRecognition(); recognition.lang = "en-US"; recognition.continuous = false; recognition.interimResults = false;
@@ -237,30 +202,18 @@ if ("webkitSpeechRecognition" in window) {
 }
 document.getElementById("voice-btn").onclick = () => { if (!recognition) { alert("Voice search not supported."); return; } recognition.start(); };
 
-/* --------------------------------------------------
-   DARK MODE LOGO - PAZHAYA POLE
--------------------------------------------------- */
 const logoImg = document.getElementById("app-logo");
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 function setLogo(isDark) { logoImg.src = isDark ? "icon-512.png" : "icon-192.jpeg"; }
 setLogo(darkQuery.matches); darkQuery.addEventListener("change", (e) => setLogo(e.matches));
 
-/* --------------------------------------------------
-   PUTHIYA BHAGAM - BARCODE -> QTY -> LIST -> EXCEL
--------------------------------------------------- */
 function initCollectedUI() {
-  // Enter key - Search input-il
   const input = document.getElementById("unified-search-input");
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); handleSearch(); }
-  });
-
-  // UI inject cheyyu - index.html maattan venda
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } });
   const anchor = document.getElementById("result-container");
   if (!anchor) return;
   const wrap = document.createElement("div");
-  wrap.id = "collected-wrap";
-  wrap.className = "mt-4";
+  wrap.id = "collected-wrap"; wrap.className = "mt-4";
   wrap.innerHTML = `
     <div id="qty-box" class="hidden bg-white rounded-3xl p-4 shadow-sm mb-4">
       <div class="text-xs font-black tracking-widest text-slate-400">QTY - ENTER CHEYYU</div>
@@ -269,6 +222,73 @@ function initCollectedUI() {
       <p class="text-[11px] text-slate-400 text-center mt-2">Qty adichu Enter adichal list-il pokum</p>
     </div>
     <div class="bg-white rounded-3xl p-4 shadow-sm">
-      <div class="flex justify-between items-center"><h3 class="font-black">Collected List</h3><span id="collected-count" class="bg-slate-900 text-white text-xs px-3 py-1 rounded-full">0 items</span></h3></div>
+      <div class="flex justify-between items-center"><h3 class="font-black">Collected List</h3><span id="collected-count" class="bg-slate-900 text-white text-xs px-3 py-1 rounded-full">0 items</span></div>
       <div id="collected-list" class="mt-2"></div>
-      <div id="collected-empty" class="text-center text-slate-400 text-sm py-4
+      <div id="collected-empty" class="text-center text-slate-400 text-sm py-4">Innum item illa. Barcode adichu thudangoo.</div>
+      <div id="collected-total" class="text-right font-black mt-2"></div>
+      <div class="flex gap-2 mt-3">
+        <button id="clear-collected" class="flex-1 py-3 rounded-2xl bg-slate-100 font-bold">Clear</button>
+        <button id="finish-download" class="flex-[2] py-3 rounded-2xl bg-green-500 text-white font-black">✅ Finish • Download Excel</button>
+      </div>
+    </div>`;
+  anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+  document.getElementById("qty-input").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addToCollected(); } });
+  document.getElementById("clear-collected").onclick = () => { if (confirm("List clear cheyyano?")) { collectedList = []; renderCollected(); } };
+  document.getElementById("finish-download").onclick = downloadCollectedExcel;
+}
+function showQtyForCurrent(groupRows) {
+  const mainRow = groupRows.find((r) => String(r["CF"]) === "1") || groupRows[0];
+  currentPicked = mainRow;
+  const box = document.getElementById("qty-box");
+  if (!box) return;
+  document.getElementById("qty-item-name").innerText = mainRow["ItemName"] + " • " + mainRow["ItemBarCode"];
+  box.classList.remove("hidden");
+  const qi = document.getElementById("qty-input");
+  qi.value = ""; qi.focus();
+}
+function addToCollected() {
+  if (!currentPicked) return;
+  const qty = parseFloat(document.getElementById("qty-input").value) || 1;
+  const ex = collectedList.find((x) => String(x.ItemBarCode) === String(currentPicked.ItemBarCode));
+  if (ex) ex.Qty += qty;
+  else collectedList.push({ ItemBarCode: currentPicked.ItemBarCode, ItemName: currentPicked.ItemName, CostPrice: currentPicked.CostPrice, MRP: currentPicked.MRP, Qty: qty });
+  renderCollected();
+  document.getElementById("qty-box").classList.add("hidden");
+  document.getElementById("result-container").classList.add("hidden");
+  const inp = document.getElementById("unified-search-input");
+  inp.value = ""; inp.focus();
+  currentPicked = null;
+}
+function renderCollected() {
+  const box = document.getElementById("collected-list");
+  const empty = document.getElementById("collected-empty");
+  document.getElementById("collected-count").innerText = collectedList.length + " items";
+  empty.style.display = collectedList.length ? "none" : "block";
+  box.innerHTML = collectedList.map((it, i) => `
+    <div class="flex justify-between items-center py-3 border-b border-slate-100">
+      <div class="flex-1"><div class="font-bold text-sm">${it.ItemName}</div><div class="text-[11px] text-slate-400">${it.ItemBarCode} • MRP ${it.MRP}</div></div>
+      <div class="font-black text-lg px-2">x ${it.Qty}</div>
+      <button onclick="removeCollected(${i})" class="w-8 h-8 rounded-full bg-red-100">✕</button>
+    </div>`).join("");
+  const tot = collectedList.reduce((s, x) => s + x.Qty, 0);
+  document.getElementById("collected-total").innerText = collectedList.length ? `Total Qty: ${tot}` : "";
+}
+function removeCollected(i) { collectedList.splice(i, 1); renderCollected(); }
+function downloadCollectedExcel() {
+  if (!collectedList.length) { alert("List empty aanu!"); return; }
+  const loadXlsx = () => new Promise((res) => {
+    if (window.XLSX) return res();
+    const s = document.createElement("script");
+    s.src = "https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js";
+    s.onload = res; document.head.appendChild(s);
+  });
+  loadXlsx().then(() => {
+    const data = collectedList.map((it) => ({ Barcode: it.ItemBarCode, ItemName: it.ItemName, Qty: it.Qty, Cost: it.CostPrice, MRP: it.MRP, TotalMRP: (it.Qty * parseFloat(it.MRP || 0)).toFixed(2) }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws["!cols"] = [{ wch: 18 }, { wch: 45 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 12 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Stock List");
+    const d = new Date();
+    XLSX.writeFile(wb, `KMART-STOCK-${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}_${d.getHours()}${d.getMinutes()}.xlsx`);
+  });
+}
