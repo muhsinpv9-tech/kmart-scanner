@@ -1,9 +1,10 @@
-// K MART - Item Master - Matched to 127-line index.html
+// K MART - Item Master + Barcode -> List -> Excel | 23000 items
 const SHEET_ID = "1ZavPmJyh07AYmTfFzi5JwfUzCsBnKAGjVOEhPMF8oxY";
 const GID = "0";
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
 
 let PRODUCTS = [];
+let LIST = JSON.parse(localStorage.getItem('kmart_list') || '[]');
 let html5QrCode = null;
 let cameraOn = false;
 
@@ -15,56 +16,67 @@ function setStatus(text, color){
   const lu = document.getElementById('last-update-container');
   const lut = document.getElementById('last-update-time');
   if(lu) lu.classList.remove('hidden');
+  if(lu) lu.classList.add('flex');
   if(lut) lut.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }
 
-function parseCSV(text){
-  const rows=[]; let row=[], cur='', inQ=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i], n=text[i+1];
-    if(c=='"' && inQ && n=='"'){cur+='"'; i++; continue;}
-    if(c=='"'){inQ=!inQ; continue;}
-    if(c==',' && !inQ){row.push(cur); cur=''; continue;}
-    if((c=='\n'||c=='\r') && !inQ){
-      if(c=='\r' && n=='\n') i++;
-      row.push(cur); rows.push(row); row=[]; cur=''; continue;
-    }
-    cur+=c;
+function fastParse(text){
+  const lines = text.split('\n');
+  const header = lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/"/g,''));
+  const idx = (n)=> header.findIndex(h=>h.includes(n));
+  const iBarcode = idx('barcode'), iName = idx('itemname'), iMRP = idx('mrp'),
+        iCost = idx('costprice'), iGroup = idx('groupname'), iStock = idx('livestock'),
+        iCF = idx('cf'), iNo = idx('itemno');
+  const out = [];
+  for(let i=1; i<lines.length; i++){
+    const line = lines[i];
+    if(!line.trim()) continue;
+    const r = line.split(',');
+    const name = (r[iName]||'').replace(/"/g,'').trim();
+    if(!name) continue;
+    out.push({
+      barcode: (r[iBarcode]||'').replace(/"/g,'').trim(),
+      name: name,
+      mrp: parseFloat(r[iMRP])||0,
+      cost: parseFloat(r[iCost])||0,
+      group: (r[iGroup]||'').replace(/"/g,'').trim(),
+      stock: (r[iStock]||'').replace(/"/g,'').trim(),
+      cf: (r[iCF]||'').replace(/"/g,'').trim(),
+      itemNo: (r[iNo]||'').replace(/"/g,'').trim()
+    });
   }
-  if(cur!==''||row.length){row.push(cur); rows.push(row);}
-  return rows;
+  return out;
 }
 
 async function loadProducts(){
-  setStatus('Syncing...', 'bg-orange-500');
+  setStatus('Loading 23000 items...', 'bg-orange-500');
+  const cached = localStorage.getItem('kmart_cache_v1');
+  const cachedTime = localStorage.getItem('kmart_cache_time');
+  const isFresh = cached && cachedTime && (Date.now() - Number(cachedTime) < 1000*60*60*6);
+  if(isFresh){
+    try{
+      PRODUCTS = JSON.parse(cached);
+      setStatus(`${PRODUCTS.length} items loaded • Ready (Cached)`, 'bg-emerald-500');
+      fetchFreshInBackground();
+      renderList();
+      return;
+    }catch(e){}
+  }
+  await fetchFreshInBackground();
+  renderList();
+}
+
+async function fetchFreshInBackground(){
   try{
     const res = await fetch(SHEET_URL);
     const text = await res.text();
-    const rows = parseCSV(text);
-    const header = rows[0].map(h=>h.trim().toLowerCase());
-    const idx = (n)=> header.findIndex(h=>h.includes(n));
-    const iBarcode = idx('barcode');
-    const iName = idx('itemname');
-    const iMRP = idx('mrp');
-    const iCost = idx('costprice');
-    const iGroup = idx('groupname');
-    const iStock = idx('livestock');
-    const iCF = idx('cf');
-    const iNo = idx('itemno');
-    PRODUCTS = rows.slice(1).filter(r=>r[iName]).map(r=>({
-      barcode: (r[iBarcode]||'').trim(),
-      name: (r[iName]||'').trim(),
-      mrp: parseFloat(r[iMRP])||0,
-      cost: parseFloat(r[iCost])||0,
-      group: (r[iGroup]||'').trim(),
-      stock: (r[iStock]||'').trim(),
-      cf: (r[iCF]||'').trim(),
-      itemNo: (r[iNo]||'').trim()
-    }));
+    PRODUCTS = fastParse(text);
+    localStorage.setItem('kmart_cache_v1', JSON.stringify(PRODUCTS));
+    localStorage.setItem('kmart_cache_time', String(Date.now()));
     setStatus(`${PRODUCTS.length} items loaded • Ready`, 'bg-emerald-500');
   }catch(e){
     console.error(e);
-    setStatus('Connection Error - Sheet Share nokku', 'bg-red-500');
+    if(!PRODUCTS.length) setStatus('Connection Error - Sheet Share nokku', 'bg-red-500');
   }
 }
 
@@ -88,10 +100,10 @@ function showSingle(p){
     <div class="flex justify-between py-3"><span class="text-slate-500 text-sm">Live Stock</span><b>${p.stock}</b></div>
     <div class="flex justify-between py-3"><span class="text-slate-500 text-sm">CF</span><b>${p.cf || '-'}</b></div>
     <div class="flex justify-between py-3"><span class="text-slate-500 text-sm">Barcode</span><b class="font-mono">${p.barcode}</b></div>
+    <button onclick="addToList('${p.barcode}')" class="w-full bg-emerald-600 text-white py-3 rounded-2xl font-bold mt-4">➕ Add to List - ${p.name}</button>
   `;
   const btn=document.getElementById('open-group-popup-btn');
   if(btn){ btn.onclick = ()=> openGroupPopup(p); btn.classList.remove('hidden'); }
-  if(window.lucide) lucide.createIcons();
 }
 
 function showList(items){
@@ -152,7 +164,6 @@ function openGroupPopup(p){
       else { navigator.clipboard.writeText(txt); alert('Copied!'); }
     };
   }
-  if(window.lucide) lucide.createIcons();
 }
 
 function closeItemModal(){
@@ -187,6 +198,69 @@ async function stopCamera(){
   if(cont) cont.classList.add('hidden');
 }
 
+// --- LIST / EXCEL ---
+function addToList(barcode){
+  const p = PRODUCTS.find(x=>x.barcode===barcode);
+  if(!p) return;
+  const ex = LIST.find(x=>x.barcode===barcode);
+  if(ex) ex.qty += 1;
+  else LIST.push({barcode:p.barcode, name:p.name, mrp:p.mrp, cost:p.cost, qty:1});
+  localStorage.setItem('kmart_list', JSON.stringify(LIST));
+  renderList();
+  alert('Added: '+p.name);
+}
+
+function changeQty(barcode, delta){
+  const it = LIST.find(x=>x.barcode===barcode);
+  if(!it) return;
+  it.qty += delta;
+  if(it.qty<=0) LIST = LIST.filter(x=>x.barcode!==barcode);
+  localStorage.setItem('kmart_list', JSON.stringify(LIST));
+  renderList();
+}
+
+function removeItem(barcode){
+  LIST = LIST.filter(x=>x.barcode!==barcode);
+  localStorage.setItem('kmart_list', JSON.stringify(LIST));
+  renderList();
+}
+
+function clearList(){
+  LIST = []; localStorage.setItem('kmart_list', '[]'); renderList();
+}
+
+function renderList(){
+  const listDiv = document.getElementById('listItems');
+  const listCount = document.getElementById('listCount');
+  const totalEl = document.getElementById('totalAmount');
+  if(!listDiv) return;
+  let total = 0;
+  listDiv.innerHTML = LIST.map(it=>{
+    const amt = it.mrp*it.qty; total+=amt;
+    return `<div class="flex justify-between items-center py-3">
+      <div><b class="text-slate-900">${it.name}</b><br><small class="text-slate-500">AED ${it.mrp.toFixed(2)} x ${it.qty} = AED ${amt.toFixed(2)}</small></div>
+      <div class="flex gap-1 items-center">
+        <button onclick="changeQty('${it.barcode}',-1)" class="w-8 h-8 bg-slate-100 rounded-lg font-bold">-</button>
+        <b class="w-6 text-center">${it.qty}</b>
+        <button onclick="changeQty('${it.barcode}',1)" class="w-8 h-8 bg-slate-100 rounded-lg font-bold">+</button>
+        <button onclick="removeItem('${it.barcode}')" class="w-8 h-8 text-red-500 font-bold">✕</button>
+      </div></div>`;
+  }).join('') || '<p class="text-center py-4 text-slate-400 text-sm">List empty aanu - Barcode scan cheythu Add cheyyu</p>';
+  if(listCount) listCount.textContent = LIST.length + ' items';
+  if(totalEl) totalEl.textContent = 'Total: AED ' + total.toFixed(2);
+}
+
+function exportExcel(){
+  if(!LIST.length){ alert('List empty aanu'); return; }
+  let csv = 'Barcode,Item Name,MRP,Qty,Amount\n';
+  LIST.forEach(it=>{ csv += `"${it.barcode}","${it.name}",${it.mrp},${it.qty},${(it.mrp*it.qty).toFixed(2)}\n`; });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'kmart-list-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
 const voiceBtn=document.getElementById('voice-btn');
 if(voiceBtn){
   voiceBtn.addEventListener('click', ()=>{
@@ -202,19 +276,16 @@ if(voiceBtn){
   });
 }
 
-const searchInput=document.getElementById('unified-search-input');
-if(searchInput){
-  searchInput.addEventListener('keydown', e=>{
-    if(e.key==='Enter') handleSearch();
-  });
-}
-
 window.handleSearch=handleSearch;
 window.toggleCamera=toggleCamera;
 window.stopCamera=stopCamera;
 window.closeItemModal=closeItemModal;
 window.showSingleByBarcode=showSingleByBarcode;
 window.openGroupPopup=openGroupPopup;
+window.addToList=addToList;
+window.changeQty=changeQty;
+window.removeItem=removeItem;
+window.clearList=clearList;
+window.exportExcel=exportExcel;
 
-if(window.lucide) lucide.createIcons();
 loadProducts();
