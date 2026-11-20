@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kmart Scanner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;font-family:Arial} body{margin:0;background:#f2f2f2;padding:10px}
+.header{background:#0a7a42;color:#fff;padding:15px;text-align:center;border-radius:10px}
+.header h2{margin:0} .card{background:#fff;padding:12px;border-radius:10px;margin-top:10px}
+input,button{width:100%;padding:12px;margin-top:8px;border-radius:8px;border:1px solid #ccc;font-size:16px}
+button{background:#0a7a42;color:#fff;border:none;font-weight:bold;cursor:pointer}
+button.red{background:#d32f2f} button.blue{background:#1976d2}
+#reader{width:100%;margin-top:10px} table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left} .qty{display:flex;gap:5px;align-items:center}
+.qty button{width:30px;padding:5px} .total{font-size:20px;font-weight:bold;text-align:right}
+</style>
+</head>
+<body>
+<div class="header"><h2>KMART SCANNER</h2><p id="count">Excel upload cheyyu - 0 items loaded</p></div>
+
+<div class="card">
+<b>1. Excel Upload (First time mathram)</b>
+<input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+<p style="font-size:12px;color:#666">Columns venam: ItemBarCode, ItemName, CostPrice, MRP, GroupName, LiveStock</p>
+</div>
+
+<div class="card">
+<b>2. Barcode Scan / Type</b>
+<input type="text" id="barcodeInput" placeholder="Barcode adikku / type cheyyu" inputmode="numeric">
+<button onclick="addByBarcode()">ADD ITEM</button>
+<button class="blue" onclick="startScan()">📷 CAMERA SCAN START</button>
+<button class="red" onclick="stopScan()">STOP CAMERA</button>
+<div id="reader"></div>
+<p id="msg" style="color:red"></p>
+</div>
+
+<div class="card">
+<b>3. Selected List (<span id="selCount">0</span>)</b>
+<input type="text" id="search" placeholder="List-il search cheyyu..." onkeyup="render()">
+<div style="overflow-x:auto"><table><thead><tr><th>Item</th><th>MRP</th><th>Qty</th><th>Total</th><th></th></tr></thead><tbody id="listBody"></tbody></table></div>
+<div class="total">Grand Total: ₹ <span id="grand">0.00</span></div>
+<button onclick="downloadExcel()">⬇ DOWNLOAD EXCEL</button>
+<button class="red" onclick="clearAll()">CLEAR ALL</button>
+</div>
+
+<script>
+let db = {}; let selected = {}; let html5Qr;
+document.getElementById('excelFile').addEventListener('change', e=>{
+  let f=e.target.files[0]; let r=new FileReader();
+  r.onload=x=>{ let wb=XLSX.read(new Uint8Array(x.target.result),{type:'array'});
+    let rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    db={}; rows.forEach(row=>{ let bc=String(row.ItemBarCode||row.Barcode||'').trim(); if(bc) db[bc]=row; });
+    document.getElementById('count').innerText='Loaded: '+Object.keys(db).length+' items ✅';
+    alert('Loaded '+Object.keys(db).length+' items!');
+  }; r.readAsArrayBuffer(f);
+});
+document.getElementById('barcodeInput').addEventListener('keypress',e=>{ if(e.key==='Enter') addByBarcode(); });
+function addByBarcode(){
+  let bc=document.getElementById('barcodeInput').value.trim();
+  if(!bc) return; document.getElementById('barcodeInput').value='';
+  if(db[bc]){ if(selected[bc]) selected[bc].qty++; else selected[bc]={data:db[bc],qty:1}; document.getElementById('msg').innerText=''; }
+  else { let name=prompt('Item database-il illa. Item Name kodu:'); if(name) selected[bc]={data:{ItemBarCode:bc,ItemName:name,CostPrice:0,MRP:0,GroupName:'MANUAL',LiveStock:''},qty:1}; else document.getElementById('msg').innerText='Barcode not found: '+bc; }
+  render(); document.getElementById('barcodeInput').focus();
+}
+function startScan(){
+  html5Qr=new Html5Qrcode("reader");
+  html5Qr.start({facingMode:"environment"},{fps:10,qrbox:250},(txt)=>{ document.getElementById('barcodeInput').value=txt; addByBarcode(); }).catch(e=>alert('Camera open aakunnilla. HTTPS link use cheyyu. '+e));
+}
+function stopScan(){ if(html5Qr) html5Qr.stop(); }
+function changeQty(bc,d){ selected[bc].qty+=d; if(selected[bc].qty<=0) delete selected[bc]; render(); }
+function delItem(bc){ delete selected[bc]; render(); }
+function clearAll(){ if(confirm('Clear all?')){ selected={}; render(); } }
+function render(){
+  let s=document.getElementById('search').value.toLowerCase(); let body=document.getElementById('listBody'); body.innerHTML=''; let grand=0;
+  Object.keys(selected).forEach(bc=>{ let it=selected[bc]; if(s && !it.data.ItemName.toLowerCase().includes(s)) return;
+    let mrp=parseFloat(it.data.MRP||0); let tot=mrp*it.qty; grand+=tot;
+    body.innerHTML+=`<tr><td><b>${it.data.ItemName}</b><br><small>${bc} | ${it.data.GroupName||''} | Stock:${it.data.LiveStock||''} | Cost:${it.data.CostPrice||''}</small></td><td>${mrp}</td><td><div class="qty"><button onclick="changeQty('${bc}',-1)">-</button>${it.qty}<button onclick="changeQty('${bc}',1)">+</button></div></td><td>${tot.toFixed(2)}</td><td><button class="red" onclick="delItem('${bc}')">X</button></td></tr>`;
+  });
+  document.getElementById('selCount').innerText=Object.keys(selected).length;
+  document.getElementById('grand').innerText=grand.toFixed(2);
+}
+function downloadExcel(){
+  if(Object.keys(selected).length==0) return alert('List empty aanu');
+  let out=[]; Object.keys(selected).forEach(bc=>{ let d=selected[bc].data; out.push({Barcode:bc,ItemName:d.ItemName,CostPrice:d.CostPrice,MRP:d.MRP,GroupName:d.GroupName,LiveStock:d.LiveStock,Qty:selected[bc].qty,Total:(parseFloat(d.MRP||0)*selected[bc].qty).toFixed(2)}); });
+  let ws=XLSX.utils.json_to_sheet(out); let wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Selected"); XLSX.writeFile(wb,"Kmart_Selected.xlsx");
+}
+</script>
+</body>
+</html>
