@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>K MART AL RAFFA - Item Master</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="apple-touch-icon" href="icon-192.jpeg" />
+</head>
+<body class="min-h-screen p-3 md:p-6 pb-24 transition-colors duration-500">
+  <div class="max-w-lg mx-auto space-y-5">
+    <!-- HEADER -->
+    <header class="header-gradient p-4 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-4">
+      <div class="p-1 rounded-2xl border-2 border-slate-800 shadow-inner bg-slate-50">
+        <img src="icon-192.jpeg" id="app-logo" class="w-12 h-12 rounded-xl object-cover" />
+      </div>
+      <div class="flex-grow">
+        <h1 class="font-black text-2xl tracking-tighter text-slate-900">K MART</h1>
+        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Al Raffa • Item Master</span>
+      </div>
+    </header>
+
+    <!-- STATUS BAR -->
+    <div class="flex justify-between items-center px-2">
+      <div id="status-pill" class="bg-white/90 px-4 py-2 rounded-full border border-slate-200 shadow-sm flex items-center gap-2">
+        <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse"></span>
+        <span id="status-text" class="text-xs font-black text-slate-600 italic">Initializing…</span>
+      </div>
+      <div id="last-update-container" class="hidden flex flex-col items-end px-1">
+        <span class="text-[9px] uppercase font-black text-gray-400 tracking-tighter leading-none">Last Sync</span>
+        <span id="last-update-time" class="text-[11px] font-bold text-slate-500 font-mono">--:--</span>
+      </div>
+    </div>
+
+    <!-- CAMERA -->
+    <section id="reader-container" class="hidden fade-in">
+      <div id="reader"></div>
+      <div class="scan-overlay"><div class="scan-line"></div></div>
+      <button onclick="stopCamera()" class="absolute top-4 right-4 bg-black/60 p-2.5 rounded-full text-white z-20">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </section>
+
+    <!-- SEARCH -->
+    <main class="glass-card p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-7">
+      <div class="space-y-3">
+        <label class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Search</label>
+        <div class="flex items-center gap-3">
+          <div class="relative flex-grow">
+            <input id="unified-search-input" type="text" placeholder="Search by barcode or name…" class="w-full pl-12 pr-14 py-4 text-lg border-2 border-slate-50 bg-slate-50/70 rounded-2xl focus:border-slate-300" oninput="handleSearch()" />
+            <i data-lucide="search" class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          </div>
+          <button id="camera-toggle-btn" onclick="toggleCamera()" class="bg-slate-900 text-white px-3 py-3 rounded-2xl"><i data-lucide="camera" class="w-6 h-6"></i></button>
+          <button id="voice-btn" class="bg-slate-900 text-white px-3 py-3 rounded-2xl"><i data-lucide="mic" class="w-5 h-5"></i></button>
+        </div>
+      </div>
+    </main>
+
+    <!-- RESULT -->
+    <div id="result-container" class="hidden space-y-3 fade-in">
+      <div class="glass-card rounded-[2rem] shadow-xl border border-slate-200 overflow-hidden">
+        <div class="bg-slate-50/80 p-6 border-b border-slate-100 flex items-center gap-4">
+          <div class="bg-emerald-500 p-2.5 rounded-2xl text-white"><i data-lucide="badge-check" class="w-6 h-6"></i></div>
+          <div class="flex-1">
+            <h2 id="result-title" class="text-2xl font-black text-slate-900"></h2>
+            <p id="result-subtitle" class="text-[11px] text-slate-500 mt-1"></p>
+          </div>
+          <button id="open-group-popup-btn" class="hidden md:inline-flex items-center gap-1 bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 rounded-xl"><i data-lucide="layers" class="w-4 h-4"></i> Details</button>
+        </div>
+        <div id="result-details" class="p-6 divide-y divide-slate-100"></div>
+      </div>
+    </div>
+
+    <!-- MULTIPLE LIST -->
+    <div id="list-container" class="hidden fade-in">
+      <div class="glass-card rounded-[2rem] border border-slate-100 overflow-hidden">
+        <div id="match-list" class="divide-y divide-slate-50"></div>
+      </div>
+    </div>
+
+    <!-- NO RESULT -->
+    <div id="no-result" class="hidden fade-in">
+      <div class="glass-card p-12 rounded-[2rem] border-2 border-dashed border-slate-200 text-center space-y-4">
+        <h3 class="font-bold text-slate-800">No Matching Item Found</h3>
+        <p class="text-sm text-slate-400">No items match the barcode or name you entered.</p>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="pt-2 pb-10">
+      <img src="banner.png" class="w-full rounded-3xl shadow-md border border-slate-200 object-cover opacity-90" />
+    </footer>
+  </div>
+
+  <!-- POPUP -->
+  <div id="item-modal" class="fixed inset-0 z-40 hidden modal-overlay flex items-center justify-center p-4">
+    <div class="popup-card max-w-md w-full rounded-3xl bg-white p-5 relative">
+      <button onclick="closeItemModal()" class="absolute top-4 right-4 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+      <div id="popup-card-wrapper" class="bg-white rounded-2xl p-4 space-y-4">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center"><i data-lucide="layers" class="w-5 h-5 text-white"></i></div>
+          <div><h3 id="popup-title" class="text-lg font-extrabold"></h3><p id="popup-subtitle" class="text-xs text-slate-500"></p></div>
+        </div>
+        <div id="popup-summary" class="grid grid-cols-3 gap-2 text-xs"></div>
+        <div class="border rounded-2xl overflow-hidden"><div class="overflow-x-auto">
+          <table class="min-w-[460px] w-full text-xs">
+            <thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left">CF</th><th class="px-3 py-2 text-left">Barcode</th><th class="px-3 py-2 text-right">Cost</th><th class="px-3 py-2 text-right">MRP</th><th class="px-3 py-2 text-right">Stock</th></tr></thead>
+            <tbody id="popup-rows" class="divide-y"></tbody>
+          </table>
+        </div></div>
+      </div>
+      <div class="mt-4 flex gap-2">
+        <button onclick="closeItemModal()" class="flex-1 bg-slate-100 py-2 rounded-xl text-xs font-semibold">Close</button>
+        <button id="share-btn" class="flex-1 bg-blue-600 text-white py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2"><i data-lucide="share-2" class="w-4 h-4"></i> Share</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
