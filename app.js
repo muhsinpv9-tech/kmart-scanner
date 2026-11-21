@@ -1,4 +1,4 @@
-// WELLMART - Item Master | v15 - CAPITAL Name + Barcode in List + Paste + Barcode Dropdown
+// WELLMART - Item Master | v16 - CAPITAL + Barcode in List + Paste + Barcode Dropdown + CF/STOCK Dot
 const SHEET_ID = "1ZavPmJyh07AYmTfFzi5JwfUzCsBnKAGjVOEhPMF8oxY";
 const GID = "0";
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
@@ -208,7 +208,6 @@ function handleSearch(){
 }
 
 function handlePaste(e){
-  // Mobile-il clipboardData kittilla - Default paste nadakan vidu, shesham value eduthu search cheyyu
   setTimeout(()=>{
     const inp = document.getElementById('unified-search-input');
     if(!inp) return;
@@ -346,12 +345,11 @@ function closeManualPopup(){
 
 function addManualItem(){
   const barcode = document.getElementById('m-barcode').value.trim().replace(/\.$/,'');
-  // CAPITAL - Small / Mix type cheythalum CAPITAL aakum
   const name = document.getElementById('m-name').value.trim().toUpperCase();
   const mrp = parseFloat(document.getElementById('m-mrp').value) || 0;
   const cost = parseFloat(document.getElementById('m-cost').value) || 0;
-  const cf = document.getElementById('m-cf').value.trim();
-  const stock = document.getElementById('m-stock').value.trim();
+  const cf = document.getElementById('m-cf').value.trim().replace(/\.+$/,'').replace(/[^0-9-]/g,'');
+  const stock = document.getElementById('m-stock').value.trim().replace(/\.+$/,'').replace(/[^0-9-]/g,'');
   const err = document.getElementById('m-error');
   if(barcode.length < 3){
     err.textContent = 'Barcode minimum 3 number venam';
@@ -462,7 +460,7 @@ function renderList(){
         <button onclick="changeQty('${it.barcode}',1)" class="w-8 h-8 bg-slate-700 rounded-lg font-bold">+</button>
         <button onclick="removeItem('${it.barcode}')" class="w-8 h-8 text-red-500 font-bold">✕</button>
       </div></div>`;
-  }).join('') || '<p class="text-center py-4 text-slate-400 text-sm">List empty aanu - Search / Scan / + cheythu Add cheyyu</p>';
+  }).join('') || '';
   if(listCount) listCount.textContent = LIST.length + ' items';
   if(totalEl) totalEl.textContent = 'Total: AED ' + total.toFixed(2);
 }
@@ -476,7 +474,6 @@ function exportExcel(){
     const cf = it.cf || (p ? p.cf : '');
     const cost = it.cost || (p ? p.cost : 0);
     const type = it.isManual ? 'ADDED - NOT IN DATABASE' : '';
-    // CAPITAL Name for Excel
     data.push([String(it.barcode), (it.name||'').toUpperCase(), it.qty, it.mrp, cost, stock, cf, type]);
   });
   const ws = XLSX.utils.aoa_to_sheet(data);
