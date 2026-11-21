@@ -1,4 +1,4 @@
-// WELLMART - Item Master | v16 - CAPITAL + Barcode in List + Paste + Barcode Dropdown + CF/STOCK Dot
+// WELLMART - Item Master | v17 - SAFE Dropdown Focus + CAPITAL + Barcode in List + Paste + Barcode Dropdown
 const SHEET_ID = "1ZavPmJyh07AYmTfFzi5JwfUzCsBnKAGjVOEhPMF8oxY";
 const GID = "0";
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
@@ -11,10 +11,11 @@ let cameraOn = false;
 let lastDotTime = 0;
 
 function focusSearch(){
-  setTimeout(()=>{
-    const inp = document.getElementById('unified-search-input');
-    if(inp){ inp.focus(); inp.select(); }
-  }, 80);
+  const inp = document.getElementById('unified-search-input');
+  if(!inp) return;
+  inp.focus();
+  setTimeout(()=>{ inp.focus(); inp.select(); }, 80);
+  setTimeout(()=>{ inp.focus(); }, 300);
 }
 
 function setStatus(text, color){
@@ -133,8 +134,9 @@ function showList(items){
   const list=document.getElementById('match-list');
   if(!c||!list) return;
   c.classList.remove('hidden');
+  // SAFE: onmousedown mathram - ontouchstart illa, scroll block aavilla
   list.innerHTML = items.slice(0,50).map(p=>`
-    <div onclick="addToListFromSearch('${p.barcode}')" class="p-4 flex justify-between items-center cursor-pointer active:bg-emerald-900/30 bg-slate-800">
+    <div onmousedown="event.preventDefault()" onclick="addToListFromSearch('${p.barcode}')" class="p-4 flex justify-between items-center cursor-pointer active:bg-emerald-900/30 bg-slate-800">
       <div><div class="font-bold text-white">${p.name} ${p.isManual?'<span class="text-[10px] bg-amber-500 text-slate-900 px-1.5 py-0.5 rounded-full ml-1">ADDED</span>':''}</div><div class="text-xs text-slate-400">${p.barcode} • ${p.group} • Stock: ${p.stock}</div></div>
       <div class="text-right shrink-0 ml-2"><div class="font-black text-white">AED ${p.mrp.toFixed(2)}</div><div class="text-[10px] text-emerald-400 font-bold">+ ADD →</div></div>
     </div>`).join('');
