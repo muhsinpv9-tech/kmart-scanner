@@ -1,4 +1,4 @@
-// WELLMART - Item Master | Manual Add + Letter Only Red + XLSX
+// WELLMART - Item Master | Cursor Focus + Enter Flow + Letter Only Red
 const SHEET_ID = "1ZavPmJyh07AYmTfFzi5JwfUzCsBnKAGjVOEhPMF8oxY";
 const GID = "0";
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
@@ -8,6 +8,13 @@ let LIST = JSON.parse(localStorage.getItem('kmart_list') || '[]');
 let MANUAL_ITEMS = JSON.parse(localStorage.getItem('kmart_manual') || '[]');
 let html5QrCode = null;
 let cameraOn = false;
+
+function focusSearch(){
+  setTimeout(()=>{
+    const inp = document.getElementById('unified-search-input');
+    if(inp){ inp.focus(); inp.select(); }
+  }, 80);
+}
 
 function setStatus(text, color){
   const t = document.getElementById('status-text');
@@ -222,6 +229,32 @@ async function stopCamera(){
   if(cont) cont.classList.add('hidden');
 }
 
+// --- MANUAL: Enter Flow + Number Only ---
+function manualEnter(e, nextId){
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  if(nextId === 'ADD'){ addManualItem(); return; }
+  const el = document.getElementById(nextId);
+  if(el) el.focus();
+}
+
+function onlyNumber(el, allowDecimal, allowMinus){
+  let v = el.value;
+  if(allowDecimal){
+    v = v.replace(/[^0-9.]/g,'');
+    const parts = v.split('.');
+    if(parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
+  } else if(allowMinus){
+    // Stock: - um number um mathram, Letter pokilla
+    const isNeg = v.startsWith('-');
+    v = v.replace(/[^0-9]/g,'');
+    if(isNeg) v = '-' + v;
+  } else {
+    v = v.replace(/[^0-9]/g,'');
+  }
+  el.value = v;
+}
+
 function openManualPopup(){
   const m=document.getElementById('manual-modal');
   if(m) m.classList.remove('hidden');
@@ -238,6 +271,7 @@ function closeManualPopup(){
   if(m) m.classList.add('hidden');
   const err=document.getElementById('m-error');
   if(err) err.classList.add('hidden');
+  focusSearch();
 }
 
 function addManualItem(){
@@ -250,11 +284,13 @@ function addManualItem(){
   const err = document.getElementById('m-error');
   if(barcode.length < 3){
     err.textContent = 'Barcode minimum 3 number venam';
-    err.classList.remove('hidden'); return;
+    err.classList.remove('hidden');
+    document.getElementById('m-barcode').focus(); return;
   }
   if(name.length < 3){
     err.textContent = 'Name minimum 3 letter venam';
-    err.classList.remove('hidden'); return;
+    err.classList.remove('hidden');
+    document.getElementById('m-name').focus(); return;
   }
   err.classList.add('hidden');
   const manual = { barcode, name, mrp, cost, group:'MANUAL ADDED', stock: stock || '', cf: cf || '', itemNo:'', isManual:true };
@@ -273,7 +309,7 @@ function addManualItem(){
   if(inp) inp.value='';
   hideAll();
   showToast('Added: ' + name + ' (Manual)');
-  document.getElementById('listItems')?.scrollIntoView({behavior:'smooth', block:'start'});
+  focusSearch();
 }
 
 function addToList(barcode){
@@ -292,8 +328,7 @@ function addToListFromSearch(barcode){
   const inp = document.getElementById('unified-search-input');
   if(inp) inp.value = '';
   hideAll();
-  const listCard = document.getElementById('listItems');
-  if(listCard) listCard.scrollIntoView({behavior:'smooth', block:'start'});
+  focusSearch();
 }
 
 function showToast(msg){
@@ -341,7 +376,6 @@ function renderList(){
     const stockNum = parseFloat(it.stock);
     const isCostHigh = costNum > 0 && it.mrp > 0 && costNum > it.mrp;
     const isStockNeg = !isNaN(stockNum) && stockNum < 0;
-    // LETTER MATHRAM RED - Background illa
     const nameCls = it.isManual ? 'text-red-400 font-black' : 'text-white';
     const mrpCls = isCostHigh ? 'text-red-400 font-black' : 'text-white';
     const costCls = isCostHigh ? 'text-red-400 font-black' : 'text-slate-400';
@@ -377,7 +411,6 @@ function exportExcel(){
     const cellRef = XLSX.utils.encode_cell({r:r, c:0});
     if(ws[cellRef]){ ws[cellRef].t = 's'; ws[cellRef].z = '@'; }
     const it = LIST[r-1];
-    // Manual row - LETTER MATHRAM RED, Background illa
     if(it && it.isManual){
       for(let c=0; c<=7; c++){
         const ref = XLSX.utils.encode_cell({r:r, c:c});
@@ -385,14 +418,12 @@ function exportExcel(){
         ws[ref].s = { font:{ color:{ rgb:"FFDC2626" }, bold:true } };
       }
     }
-    // Cost > MRP - LETTER MATHRAM RED
     if(it && Number(it.cost||0) > 0 && Number(it.mrp||0) > 0 && Number(it.cost) > Number(it.mrp)){
       [3,4].forEach(c=>{
         const ref = XLSX.utils.encode_cell({r:r, c:c});
         if(ws[ref]) ws[ref].s = { font:{ color:{ rgb:"FFDC2626" }, bold:true } };
       });
     }
-    // Stock Negative - LETTER MATHRAM RED
     const stockNum = parseFloat(it?.stock);
     if(!isNaN(stockNum) && stockNum < 0){
       const ref = XLSX.utils.encode_cell({r:r, c:5});
@@ -420,5 +451,8 @@ window.exportExcel=exportExcel;
 window.openManualPopup=openManualPopup;
 window.closeManualPopup=closeManualPopup;
 window.addManualItem=addManualItem;
+window.manualEnter=manualEnter;
+window.onlyNumber=onlyNumber;
+window.focusSearch=focusSearch;
 
 loadProducts();
