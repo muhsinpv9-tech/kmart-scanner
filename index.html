@@ -35,7 +35,7 @@
   <div class="bg-slate-800 rounded-3xl p-4 border border-slate-700">
     <div class="text-xs tracking-widest text-slate-400 font-bold mb-3">SEARCH</div>
     <div class="flex gap-2">
-      <input id="unified-search-input" oninput="handleSearch()" type="text" placeholder="Search name / barcode..." class="flex-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none focus:border-emerald-500 text-[15px] text-white placeholder:text-slate-400" autocomplete="off">
+      <input id="unified-search-input" oninput="handleSearch()" onkeydown="searchEnter(event)" type="text" placeholder="Search name / barcode..." class="flex-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none focus:border-emerald-500 text-[15px] text-white placeholder:text-slate-400" autocomplete="off">
       <button onclick="openManualPopup()" class="w-12 h-12 bg-amber-500 text-slate-900 rounded-2xl text-2xl font-black shrink-0">+</button>
       <button onclick="toggleCamera()" class="w-12 h-12 bg-emerald-600 text-white rounded-2xl text-xl shrink-0">📷</button>
     </div>
@@ -131,6 +131,6 @@
   </div>
 </div>
 
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
