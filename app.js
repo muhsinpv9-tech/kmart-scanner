@@ -1,4 +1,4 @@
-// K MART - Item Master + Barcode -> List -> Excel | 23000 items
+// K MART - Item Master + Barcode -> List -> XLSX | 23000 items
 const SHEET_ID = "1ZavPmJyh07AYmTfFzi5JwfUzCsBnKAGjVOEhPMF8oxY";
 const GID = "0";
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
@@ -19,7 +19,6 @@ function setStatus(text, color){
   if(lut) lut.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }
 
-// CSV parser - comma inside name handle cheyyum
 function parseCSVLine(line){
   const out=[]; let cur='', inQ=false;
   for(let i=0;i<line.length;i++){
@@ -137,15 +136,21 @@ function showNoResult(){
   if(el) el.classList.remove('hidden');
 }
 
+// --- SEARCH FIX: Word-by-word ---
 function handleSearch(){
   const inp=document.getElementById('unified-search-input');
   if(!inp) return;
   const q=inp.value.trim().toLowerCase();
-  if(q.length<2){ hideAll(); return; }
+  if(q.length<3){ hideAll(); return; }
   if(!PRODUCTS.length) return;
   const exact = PRODUCTS.find(p=>p.barcode===q);
   if(exact){ showSingle(exact); return; }
-  const filtered = PRODUCTS.filter(p=> p.name.toLowerCase().includes(q) || p.barcode.includes(q));
+  // Eas Chi, Eas Mas, Eas 100 okke work aavum
+  const words = q.split(/\s+/).filter(w=>w.length>0);
+  const filtered = PRODUCTS.filter(p=>{
+    const hay = (p.name + ' ' + p.barcode + ' ' + p.group).toLowerCase();
+    return words.every(w => hay.includes(w));
+  });
   if(filtered.length===1) showSingle(filtered[0]);
   else if(filtered.length>1) showList(filtered);
   else showNoResult();
@@ -210,21 +215,13 @@ async function stopCamera(){
   if(cont) cont.classList.add('hidden');
 }
 
-// --- LIST / EXCEL - FIXED ---
+// --- LIST ---
 function addToList(barcode){
   const p = PRODUCTS.find(x=>x.barcode===barcode);
   if(!p) return;
   const ex = LIST.find(x=>x.barcode===barcode);
   if(ex) ex.qty += 1;
-  else LIST.push({
-    barcode: p.barcode,
-    name: p.name,
-    mrp: p.mrp,
-    cost: p.cost,
-    stock: p.stock,
-    cf: p.cf,
-    qty: 1
-  });
+  else LIST.push({ barcode: p.barcode, name: p.name, mrp: p.mrp, cost: p.cost, stock: p.stock, cf: p.cf, qty: 1 });
   localStorage.setItem('kmart_list', JSON.stringify(LIST));
   renderList();
   alert('Added: '+p.name);
@@ -270,24 +267,27 @@ function renderList(){
   if(totalEl) totalEl.textContent = 'Total: AED ' + total.toFixed(2);
 }
 
+// --- EXPORT XLSX - Barcode Text Format, Qty/MRP/Cost/Stock/CF, No Total ---
 function exportExcel(){
   if(!LIST.length){ alert('List empty aanu'); return; }
-  // FIX 1: Qty, MRP, Cost, Stock, CF - Thazhe Total calculate illa
-  // FIX 2: Barcode TEXT format - munnile 0 pokilla
-  let csv = 'Barcode,Item Name,Qty,MRP,Cost Price,Stock,CF\n';
+  const data = [['Barcode','Item Name','Qty','MRP','Cost Price','Stock','CF']];
   LIST.forEach(it=>{
     const p = PRODUCTS.find(x=>x.barcode===it.barcode);
     const stock = it.stock || (p ? p.stock : '');
     const cf = it.cf || (p ? p.cf : '');
     const cost = it.cost || (p ? p.cost : 0);
-    // Barcode TEXT format: ="012345" -> Excel Text aayi kaanum, 0 pokilla
-    csv += `="""${it.barcode}""","${it.name}",${it.qty},${it.mrp},${cost},"${stock}","${cf}"\n`;
+    data.push([String(it.barcode), it.name, it.qty, it.mrp, cost, stock, cf]);
   });
-  const blob = new Blob(["\uFEFF" + csv], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'kmart-list-' + new Date().toISOString().slice(0,10) + '.csv';
-  a.click();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for(let r=1; r<=range.e.r; r++){
+    const cellRef = XLSX.utils.encode_cell({r:r, c:0});
+    if(ws[cellRef]){ ws[cellRef].t = 's'; ws[cellRef].z = '@'; }
+  }
+  ws['!cols'] = [{wch:18},{wch:35},{wch:8},{wch:12},{wch:12},{wch:12},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Kmart List");
+  XLSX.writeFile(wb, 'kmart-list-' + new Date().toISOString().slice(0,10) + '.xlsx');
 }
 
 const voiceBtn=document.getElementById('voice-btn');
