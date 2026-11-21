@@ -1,4 +1,117 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>K MART - Item Master</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#059669">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-100 min-h-screen pb-24">
+
+<!-- Header -->
+<div class="bg-emerald-700 text-white sticky top-0 z-40 shadow-lg">
+  <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl font-black text-emerald-700">K</div>
+      <div>
+        <div class="font-black text-lg leading-none">K MART</div>
+        <div class="text-[11px] text-emerald-200">Supermarket • Item Master</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 bg-emerald-800 px-3 py-1.5 rounded-full text-xs">
+      <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse"></span>
+      <span id="status-text">Loading...</span>
+    </div>
+  </div>
+  <div id="last-update-container" class="hidden justify-center pb-2 text-[11px] text-emerald-200">
+    Last update: <span id="last-update-time" class="ml-1 font-bold"></span>
+  </div>
+</div>
+
+<div class="max-w-3xl mx-auto px-4 pt-4 space-y-4">
+
+  <!-- Search -->
+  <div class="bg-white rounded-2xl shadow p-3">
+    <div class="flex gap-2">
+      <input id="unified-search-input" oninput="handleSearch()" type="text" placeholder="Search name / barcode... Eg: Eas Chi, Eas 100" class="flex-1 px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-emerald-500 text-[15px]" autocomplete="off">
+      <button id="voice-btn" class="w-12 h-12 bg-slate-100 rounded-xl text-xl">🎤</button>
+      <button onclick="toggleCamera()" class="w-12 h-12 bg-emerald-600 text-white rounded-xl text-xl">📷</button>
+    </div>
+    <div id="reader-container" class="hidden mt-3">
+      <div id="reader" class="rounded-xl overflow-hidden"></div>
+      <button onclick="stopCamera()" class="w-full mt-2 bg-red-500 text-white py-2 rounded-xl text-sm font-bold">Close Camera</button>
+    </div>
+    <p class="text-[11px] text-slate-400 mt-2 text-center">3 letter adichal dropdown varum • Eas Chi / Eas Mas / Eas 100 pole search cheyyam</p>
+  </div>
+
+  <!-- Single Result -->
+  <div id="result-container" class="hidden bg-white rounded-2xl shadow p-4">
+    <h2 id="result-title" class="font-black text-lg text-slate-900"></h2>
+    <p id="result-subtitle" class="text-xs text-slate-500 mt-1"></p>
+    <div id="result-details" class="mt-3 divide-y divide-slate-100"></div>
+    <button id="open-group-popup-btn" class="hidden w-full mt-3 bg-slate-900 text-white py-3 rounded-2xl font-bold text-sm">View Full Details</button>
+  </div>
+
+  <!-- List Results -->
+  <div id="list-container" class="hidden bg-white rounded-2xl shadow overflow-hidden">
+    <div class="px-4 py-3 bg-slate-50 font-bold text-sm text-slate-700">Matching Items - Tap to View</div>
+    <div id="match-list" class="divide-y divide-slate-100 max-h-[60vh] overflow-y-auto"></div>
+  </div>
+
+  <!-- No Result -->
+  <div id="no-result" class="hidden bg-white rounded-2xl shadow p-6 text-center">
+    <div class="text-4xl mb-2">🔍</div>
+    <p class="font-bold text-slate-700">Item kittiyilla</p>
+    <p class="text-xs text-slate-400 mt-1">Spelling / Barcode onnu koodi nokku</p>
+  </div>
+
+  <!-- My List -->
+  <div class="bg-white rounded-2xl shadow p-4">
+    <div class="flex items-center justify-between">
+      <h3 class="font-black text-slate-900">🧾 My List <span id="listCount" class="text-xs font-normal bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-1">0 items</span></h3>
+      <div class="flex gap-2">
+        <button onclick="clearList()" class="text-xs bg-red-50 text-red-600 px-3 py-2 rounded-lg font-bold">Clear</button>
+        <button onclick="exportExcel()" class="text-xs bg-emerald-600 text-white px-3 py-2 rounded-lg font-bold">⬇ Download XLSX</button>
+      </div>
+    </div>
+    <div id="listItems" class="divide-y divide-slate-100 mt-2"></div>
+    <div class="flex justify-between pt-3 border-t mt-2">
+      <span class="text-slate-500 text-sm">Total (MRP)</span>
+      <b id="totalAmount" class="text-slate-900">Total: AED 0.00</b>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div id="item-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="if(event.target===this) closeItemModal()">
+  <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] overflow-y-auto">
+    <div class="flex justify-between items-start">
+      <div>
+        <h3 id="popup-title" class="font-black text-lg text-slate-900"></h3>
+        <p id="popup-subtitle" class="text-xs text-slate-500"></p>
+      </div>
+      <button onclick="closeItemModal()" class="w-8 h-8 bg-slate-100 rounded-full font-bold">✕</button>
+    </div>
+    <div id="popup-summary" class="grid grid-cols-3 gap-2 mt-4"></div>
+    <div class="overflow-x-auto mt-4">
+      <table class="w-full text-sm">
+        <thead><tr class="bg-slate-50 text-left text-xs text-slate-500"><th class="px-3 py-2">CF</th><th class="px-3 py-2">Barcode</th><th class="px-3 py-2 text-right">Cost</th><th class="px-3 py-2 text-right">MRP</th><th class="px-3 py-2 text-right">Stock</th></tr></thead>
+        <tbody id="popup-rows"></tbody>
+      </table>
+    </div>
+    <button id="share-btn" class="w-full mt-4 bg-emerald-600 text-white py-3 rounded-2xl font-bold">Share Item</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
