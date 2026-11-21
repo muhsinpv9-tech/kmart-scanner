@@ -93,23 +93,22 @@
 <div id="manual-modal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="if(event.target===this) closeManualPopup()">
   <div class="bg-slate-800 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[90vh] overflow-y-auto text-white">
     <div class="flex justify-between items-start">
-      <div><h3 class="font-black text-lg">+ Manual Item Add</h3><p class="text-xs text-slate-400">Database-il illatha item</p></div>
+      <div><h3 class="font-black text-lg">+ Manual Item Add</h3></div>
       <button onclick="closeManualPopup()" class="w-8 h-8 bg-slate-700 rounded-full font-bold">✕</button>
     </div>
     <div class="space-y-3 mt-4">
-      <div><label class="text-xs font-bold text-slate-400">BARCODE * <span class="text-amber-400">.. = Next</span></label><input id="m-barcode" type="text" inputmode="numeric" placeholder="e.g. 629110..." onkeydown="manualEnter(event,'m-name'); manualDot(event,'m-name')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none focus:border-amber-500"></div>
-      <div><label class="text-xs font-bold text-slate-400">ITEM NAME * <span class="text-amber-400">Min 3 letter • CAPITAL aayi varum</span></label><input id="m-name" type="text" placeholder="e.g. Eastern Masala..." oninput="this.value=this.value.toUpperCase()" onkeydown="manualEnter(event,'m-mrp')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none focus:border-amber-500 uppercase"></div>
+      <div><label class="text-xs font-bold text-slate-400">BARCODE</label><input id="m-barcode" type="text" inputmode="numeric" placeholder="e.g. 629110..." onkeydown="manualEnter(event,'m-name'); manualDot(event,'m-name')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none focus:border-amber-500"></div>
+      <div><label class="text-xs font-bold text-slate-400">ITEM NAME</label><input id="m-name" type="text" placeholder="e.g. Eastern Masala..." oninput="this.value=this.value.toUpperCase()" onkeydown="manualEnter(event,'m-mrp')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none focus:border-amber-500 uppercase"></div>
       <div class="grid grid-cols-2 gap-3">
-        <div><label class="text-xs font-bold text-slate-400">MRP • . = Decimal, .. = Next</label><input id="m-mrp" type="text" inputmode="decimal" placeholder="0.00" oninput="onlyNumber(this,true)" onkeydown="manualEnter(event,'m-cost'); manualDot(event,'m-cost')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none"></div>
-        <div><label class="text-xs font-bold text-slate-400">COST • . = Decimal, .. = Next</label><input id="m-cost" type="text" inputmode="decimal" placeholder="0.00" oninput="onlyNumber(this,true)" onkeydown="manualEnter(event,'m-cf'); manualDot(event,'m-cf')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none"></div>
+        <div><label class="text-xs font-bold text-slate-400">MRP</label><input id="m-mrp" type="text" inputmode="decimal" placeholder="0.00" oninput="onlyNumber(this,true)" onkeydown="manualEnter(event,'m-cost'); manualDot(event,'m-cost')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none"></div>
+        <div><label class="text-xs font-bold text-slate-400">COST</label><input id="m-cost" type="text" inputmode="decimal" placeholder="0.00" oninput="onlyNumber(this,true)" onkeydown="manualEnter(event,'m-cf'); manualDot(event,'m-cf')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none"></div>
       </div>
       <div class="grid grid-cols-2 gap-3">
-        <div><label class="text-xs font-bold text-slate-400">CF • .. = Next</label><input id="m-cf" type="text" inputmode="numeric" placeholder="e.g. 12" oninput="onlyNumber(this,false)" onkeydown="manualEnter(event,'m-stock'); manualDot(event,'m-stock')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none"></div>
-        <div><label class="text-xs font-bold text-slate-400">STOCK • .. = Add</label><input id="m-stock" type="text" inputmode="numeric" placeholder="0" oninput="onlyNumber(this,false,true)" onkeydown="manualEnter(event,'ADD'); manualDot(event,'ADD')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none"></div>
+        <div><label class="text-xs font-bold text-slate-400">CF</label><input id="m-cf" type="text" inputmode="decimal" placeholder="e.g. 12" oninput="onlyNumber(this,true)" onkeydown="manualEnter(event,'m-stock'); manualDot(event,'m-stock')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none"></div>
+        <div><label class="text-xs font-bold text-slate-400">STOCK</label><input id="m-stock" type="text" inputmode="decimal" placeholder="0" oninput="onlyNumber(this,true,true)" onkeydown="manualEnter(event,'ADD'); manualDot(event,'ADD')" class="w-full mt-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none"></div>
       </div>
       <p id="m-error" class="hidden text-red-400 text-xs font-bold"></p>
       <button onclick="addManualItem()" class="w-full bg-amber-500 text-slate-900 py-3.5 rounded-2xl font-bold">➕ Add to List</button>
-      <p class="text-[11px] text-slate-500 text-center">Oru . = Decimal / Pokilla • Randu .. cherthu = Next / Add</p>
     </div>
   </div>
 </div>
@@ -131,6 +130,6 @@
   </div>
 </div>
 
-<script src="app.js?v=15"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>
