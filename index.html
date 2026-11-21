@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>K MART - Item Master</title>
+<title>WELLMART - Item Master</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#059669">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -13,13 +13,13 @@
 </head>
 <body class="bg-slate-900 min-h-screen pb-24 text-white">
 
-<!-- TOP HEADER - Green -->
+<!-- TOP HEADER -->
 <div class="bg-emerald-700 text-white sticky top-0 z-40">
   <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-xl font-black text-emerald-500">K</div>
+      <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-xl font-black text-emerald-500">W</div>
       <div>
-        <div class="font-black text-lg leading-none">K MART</div>
+        <div class="font-black text-lg leading-none">WELLMART</div>
         <div class="text-[12px] text-emerald-200 leading-tight">Supermarket • Item<br>Master</div>
       </div>
     </div>
@@ -33,11 +33,11 @@
 
 <div class="max-w-3xl mx-auto px-4 pt-4 space-y-4">
 
-  <!-- SEARCH - Single Only -->
+  <!-- SEARCH - Hint illa -->
   <div class="bg-slate-800 rounded-3xl p-4 border border-slate-700">
     <div class="text-xs tracking-widest text-slate-400 font-bold mb-3">SEARCH</div>
     <div class="flex gap-2">
-      <input id="unified-search-input" oninput="handleSearch()" type="text" placeholder="Search name / barcode... Eg: Eas Chi" class="flex-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none focus:border-emerald-500 text-[15px] text-white placeholder:text-slate-400" autocomplete="off">
+      <input id="unified-search-input" oninput="handleSearch()" type="text" placeholder="Search name / barcode..." class="flex-1 px-4 py-3 rounded-2xl bg-slate-700 border border-slate-600 outline-none focus:border-emerald-500 text-[15px] text-white placeholder:text-slate-400" autocomplete="off">
       <button id="voice-btn" class="w-12 h-12 bg-slate-700 rounded-2xl text-xl shrink-0">🎤</button>
       <button onclick="toggleCamera()" class="w-12 h-12 bg-emerald-600 text-white rounded-2xl text-xl shrink-0">📷</button>
     </div>
@@ -45,7 +45,6 @@
       <div id="reader" class="rounded-xl overflow-hidden"></div>
       <button onclick="stopCamera()" class="w-full mt-2 bg-red-500 text-white py-2 rounded-xl text-sm font-bold">Close Camera</button>
     </div>
-    <p class="text-[12px] text-slate-400 mt-2 text-center">3 letter adichal dropdown varum • Eas Chi / Eas Mas / Eas 100 pole search cheyyam</p>
   </div>
 
   <!-- Single Result -->
@@ -69,31 +68,30 @@
     <p class="text-xs text-slate-400 mt-1">Spelling / Barcode onnu koodi nokku</p>
   </div>
 
-  <!-- MY LIST - Single Only -->
+  <!-- MY LIST - Buttons thazhe -->
   <div class="bg-slate-800 rounded-3xl p-4 border border-slate-700">
-    <div class="flex items-center justify-between gap-2">
-      <h3 class="font-black whitespace-nowrap">My List - <span id="listCount" class="text-sm font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">0 items</span></h3>
-      <div class="flex gap-2 shrink-0">
-        <button onclick="clearList()" class="text-sm bg-white text-red-600 px-4 py-2.5 rounded-xl font-bold">Clear</button>
-        <button onclick="exportExcel()" class="text-sm bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold">⬇ Download XLSX</button>
-      </div>
+    <div class="flex items-center justify-between">
+      <h3 class="font-black">My List - <span id="listCount" class="text-sm font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">0 items</span></h3>
     </div>
     <div id="listItems" class="divide-y divide-slate-700 mt-2"></div>
     <div class="flex justify-between pt-3 border-t border-slate-700 mt-2">
       <span class="text-slate-400 text-sm">Total (MRP)</span>
       <b id="totalAmount" class="text-white">Total: AED 0.00</b>
     </div>
+    <!-- Buttons - List-inte thazhe -->
+    <button onclick="exportExcel()" class="w-full mt-4 bg-emerald-600 text-white py-3.5 rounded-2xl font-bold text-[15px]">⬇ Download XLSX</button>
+    <button onclick="clearList()" class="w-full mt-2 bg-transparent border border-red-500/50 text-red-400 py-3 rounded-2xl font-bold text-sm">Clear List</button>
   </div>
 
-  <!-- BOTTOM BRAND CARD - Oru thavana mathram -->
+  <!-- BOTTOM BRAND CARD -->
   <div class="bg-slate-800 rounded-3xl p-4 border border-slate-700 flex items-center gap-4">
     <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shrink-0 overflow-hidden">
       <img src="icon-192.png" onerror="this.style.display='none'" class="w-full h-full object-cover" alt="">
-      <span class="text-emerald-600 font-black text-2xl">K</span>
+      <span class="text-emerald-600 font-black text-2xl">W</span>
     </div>
     <div>
-      <div class="font-black text-2xl leading-none">K MART</div>
-      <div class="text-[11px] tracking-[0.2em] text-slate-400 font-bold mt-1">AL RAFFA • ITEM MASTER</div>
+      <div class="font-black text-2xl leading-none">WELLMART</div>
+      <div class="text-[11px] tracking-[0.2em] text-slate-400 font-bold mt-1">DIP 1 DUBAI • ITEM MASTER</div>
     </div>
   </div>
 
@@ -117,6 +115,6 @@
   </div>
 </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
