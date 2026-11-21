@@ -1,4 +1,4 @@
-// WELLMART - Item Master | .. = Enter + Cursor Focus + Letter Only Red
+// WELLMART - Item Master | Dropdown + Scanner Enter + .. = Enter
 const SHEET_ID = "1ZavPmJyh07AYmTfFzi5JwfUzCsBnKAGjVOEhPMF8oxY";
 const GID = "0";
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
@@ -146,6 +146,30 @@ function showNoResult(){
   if(el) el.classList.remove('hidden');
 }
 
+// --- SEARCH + SCANNER ENTER ---
+function searchEnter(e){
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  const inp = document.getElementById('unified-search-input');
+  if(!inp) return;
+  const q = inp.value.trim();
+  if(!q) return;
+  // Scanner: Barcode + Enter varum - Exact match undenkil nere Add
+  const exact = PRODUCTS.find(p=>p.barcode===q);
+  if(exact){ addToListFromSearch(exact.barcode); return; }
+  // Barcode alla, name aanenkil - 1 item mathram match aanel athu Add
+  const norm = (s)=> (s||'').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+  const words = norm(q).split(' ').filter(w=>w.length>0);
+  const filtered = PRODUCTS.filter(p=>{
+    const hayWords = norm(p.name + ' ' + p.group).split(' ');
+    return words.every(w => hayWords.some(hw => hw.startsWith(w) || hw.includes(w)));
+  });
+  if(filtered.length===1){ addToListFromSearch(filtered[0].barcode); return; }
+  // Allenkil normal search kanikku, cursor Search-il thanne
+  handleSearch();
+  focusSearch();
+}
+
 function handleSearch(){
   const inp=document.getElementById('unified-search-input');
   if(!inp) return;
@@ -216,6 +240,7 @@ async function toggleCamera(){
         if(inp) inp.value=decoded;
         handleSearch();
         stopCamera();
+        focusSearch();
       }, ()=>{});
   }catch(e){ console.error(e); stopCamera(); }
 }
@@ -230,7 +255,6 @@ async function stopCamera(){
   if(cont) cont.classList.add('hidden');
 }
 
-// --- MANUAL: Enter + .. = Next ---
 function manualEnter(e, nextId){
   if(e.key !== 'Enter') return;
   e.preventDefault();
@@ -244,15 +268,10 @@ function manualDot(e, nextId){
   const now = Date.now();
   const isDouble = (now - lastDotTime < 700);
   lastDotTime = now;
-  if(!isDouble){
-    // Oru . mathram - Decimal aayi pokatte / Pokaruth, kathirikku
-    return;
-  }
-  // .. adichu - Enter aayi kanakku
+  if(!isDouble) return;
   e.preventDefault();
   lastDotTime = 0;
   const el = e.target;
-  // Avasheshicha . kalayu - MRP 12.50.. -> 12.50, Barcode 123.. -> 123
   if(el.value.endsWith('.')) el.value = el.value.slice(0, -1);
   if(nextId === 'ADD'){ addManualItem(); return; }
   const next = document.getElementById(nextId);
@@ -457,6 +476,7 @@ function exportExcel(){
 }
 
 window.handleSearch=handleSearch;
+window.searchEnter=searchEnter;
 window.toggleCamera=toggleCamera;
 window.stopCamera=stopCamera;
 window.closeItemModal=closeItemModal;
