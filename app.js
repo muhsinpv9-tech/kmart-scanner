@@ -15,14 +15,25 @@ function setStatus(text, color){
   if(d) d.className = `w-2.5 h-2.5 rounded-full animate-pulse ${color || 'bg-emerald-500'}`;
   const lu = document.getElementById('last-update-container');
   const lut = document.getElementById('last-update-time');
-  if(lu) lu.classList.remove('hidden');
-  if(lu) lu.classList.add('flex');
+  if(lu){ lu.classList.remove('hidden'); lu.classList.add('flex'); }
   if(lut) lut.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+// CSV parser - comma inside name handle cheyyum
+function parseCSVLine(line){
+  const out=[]; let cur='', inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){ if(inQ && line[i+1]==='"'){ cur+='"'; i++; } else inQ=!inQ; }
+    else if(c===',' && !inQ){ out.push(cur); cur=''; }
+    else cur+=c;
+  }
+  out.push(cur); return out;
 }
 
 function fastParse(text){
   const lines = text.split('\n');
-  const header = lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/"/g,''));
+  const header = parseCSVLine(lines[0]).map(h=>h.trim().toLowerCase().replace(/"/g,''));
   const idx = (n)=> header.findIndex(h=>h.includes(n));
   const iBarcode = idx('barcode'), iName = idx('itemname'), iMRP = idx('mrp'),
         iCost = idx('costprice'), iGroup = idx('groupname'), iStock = idx('livestock'),
@@ -31,7 +42,7 @@ function fastParse(text){
   for(let i=1; i<lines.length; i++){
     const line = lines[i];
     if(!line.trim()) continue;
-    const r = line.split(',');
+    const r = parseCSVLine(line);
     const name = (r[iName]||'').replace(/"/g,'').trim();
     if(!name) continue;
     out.push({
@@ -50,6 +61,7 @@ function fastParse(text){
 
 async function loadProducts(){
   setStatus('Loading 23000 items...', 'bg-orange-500');
+  renderList();
   const cached = localStorage.getItem('kmart_cache_v1');
   const cachedTime = localStorage.getItem('kmart_cache_time');
   const isFresh = cached && cachedTime && (Date.now() - Number(cachedTime) < 1000*60*60*6);
@@ -58,12 +70,10 @@ async function loadProducts(){
       PRODUCTS = JSON.parse(cached);
       setStatus(`${PRODUCTS.length} items loaded • Ready (Cached)`, 'bg-emerald-500');
       fetchFreshInBackground();
-      renderList();
       return;
     }catch(e){}
   }
   await fetchFreshInBackground();
-  renderList();
 }
 
 async function fetchFreshInBackground(){
@@ -71,8 +81,10 @@ async function fetchFreshInBackground(){
     const res = await fetch(SHEET_URL);
     const text = await res.text();
     PRODUCTS = fastParse(text);
-    localStorage.setItem('kmart_cache_v1', JSON.stringify(PRODUCTS));
-    localStorage.setItem('kmart_cache_time', String(Date.now()));
+    try{
+      localStorage.setItem('kmart_cache_v1', JSON.stringify(PRODUCTS));
+      localStorage.setItem('kmart_cache_time', String(Date.now()));
+    }catch(e){ console.log('Cache full, skip cache'); }
     setStatus(`${PRODUCTS.length} items loaded • Ready`, 'bg-emerald-500');
   }catch(e){
     console.error(e);
