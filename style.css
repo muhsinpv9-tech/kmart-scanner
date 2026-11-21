@@ -1,38 +1,30 @@
-/* --------------------------------------------------
-   DARK MODE - TEXT FIX (ithu avasanam cherkku)
--------------------------------------------------- */
-@media (prefers-color-scheme: dark) {
-  body { color: #f1f5f9 !important; }
+/* K MART - BASE + DARK MODE */
+body { background: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+.glass-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); }
+.header-gradient { background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%); }
+.fade-in { animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+#reader-container { position: relative; overflow: hidden; border-radius: 1.5rem; background: #000; min-height: 260px; }
+#reader { width: 100%; min-height: 260px; }
+.scan-overlay { position: absolute; inset: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.scan-overlay::after { content: ""; width: 80%; height: 120px; border: 2px solid #22c55e; border-radius: 1rem; display: block; }
+.scan-line { display: none; }
+.modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+.popup-card { box-shadow: 0 25px 50px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+#unified-search-input { outline: none; }
 
-  /* Ella dark text-um white aakku */
+/* DARK MODE - TEXT FIX */
+@media (prefers-color-scheme: dark) {
+  body { background: #020617 !important; color: #f1f5f9 !important; }
+  .glass-card, .header-gradient { background: #0f172a !important; }
   .text-slate-900, .text-slate-800, .text-slate-700 { color: #ffffff !important; }
   .text-slate-600, .text-slate-500 { color: #cbd5e1 !important; }
   .text-slate-400 { color: #94a3b8 !important; }
-
-  /* White background ulla card-ukal dark aakku */
   .bg-white { background-color: #0f172a !important; }
   .bg-slate-50, .bg-slate-100 { background-color: #1e293b !important; }
-
-  /* Search input */
-  #unified-search-input {
-    background-color: #1e293b !important;
-    color: #ffffff !important;
-    border-color: #334155 !important;
-  }
+  #unified-search-input { background-color: #1e293b !important; color: #ffffff !important; border-color: #334155 !important; }
   #unified-search-input::placeholder { color: #94a3b8 !important; }
-
-  /* Result details divider */
-  #result-details > div { border-color: #1e293b !important; }
-  .divide-slate-100 > * { border-color: #1e293b !important; }
-  .divide-slate-50 > * { border-color: #1e293b !important; }
-
-  /* Border-ukal */
   .border-slate-100, .border-slate-200 { border-color: #334155 !important; }
-
-  /* Popup */
   .popup-card, #popup-card-wrapper { background: #0f172a !important; color: #fff !important; }
-  #popup-card-wrapper table thead { background: #1e293b !important; }
-
-  /* Status pill */
   #status-pill { background: #1e293b !important; border-color: #334155 !important; }
 }
