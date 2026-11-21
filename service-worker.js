@@ -1,55 +1,11 @@
-const CACHE_NAME = "kmart-cache-v2"; // v1 -> v2 aakki, pazhaya cache kalayan
-
-const ASSETS = [
-  "index.html",
-  "style.css",
-  "app.js",
-  "manifest.json",
-  "products.json", // PUTHIYATHU - database main branch-il ninnu
-  "icon-192.jpeg",
-  "icon-512.png",
-  "banner.png"
-];
-
-// Install SW
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
-  );
+const CACHE_NAME = "kmart-cache-v3";
+const ASSETS = ["index.html","style.css","app.js","manifest.json","icon-192.jpeg","banner.png"];
+self.addEventListener("install", (e) => {
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)).catch(()=>{}));
 });
-
-// Activate SW
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) return caches.delete(key);
-        })
-      )
-    )
-  );
+self.addEventListener("activate", (e) => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null))));
 });
-
-// Fetch handler - products.json eppozhum fresh edukkum
-self.addEventListener("fetch", (event) => {
-  // products.json-nu cache venda, fresh venam
-  if (event.request.url.includes("products.json")) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match("products.json"))
-    );
-    return;
-  }
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).catch(() =>
-          caches.match("index.html")
-        )
-      );
-    })
-  );
+self.addEventListener("fetch", (e) => {
+  e.respondWith(caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => caches.match("index.html"))));
 });
