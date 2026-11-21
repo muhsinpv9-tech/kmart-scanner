@@ -13,7 +13,6 @@
 </head>
 <body class="bg-slate-900 min-h-screen pb-24 text-white">
 
-<!-- TOP HEADER -->
 <div class="bg-emerald-700 text-white sticky top-0 z-40">
   <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-3">
@@ -33,7 +32,6 @@
 
 <div class="max-w-3xl mx-auto px-4 pt-4 space-y-4">
 
-  <!-- SEARCH - Hint illa -->
   <div class="bg-slate-800 rounded-3xl p-4 border border-slate-700">
     <div class="text-xs tracking-widest text-slate-400 font-bold mb-3">SEARCH</div>
     <div class="flex gap-2">
@@ -47,7 +45,6 @@
     </div>
   </div>
 
-  <!-- Single Result -->
   <div id="result-container" class="hidden bg-slate-800 rounded-3xl p-4 border border-slate-700">
     <h2 id="result-title" class="font-black text-lg"></h2>
     <p id="result-subtitle" class="text-xs text-slate-400 mt-1"></p>
@@ -55,20 +52,17 @@
     <button id="open-group-popup-btn" class="hidden w-full mt-3 bg-white text-slate-900 py-3 rounded-2xl font-bold text-sm">View Full Details</button>
   </div>
 
-  <!-- List Results -->
   <div id="list-container" class="hidden bg-slate-800 rounded-3xl overflow-hidden border border-slate-700">
-    <div class="px-4 py-3 bg-slate-700 font-bold text-sm">Matching Items - Tap to View</div>
+    <div class="px-4 py-3 bg-slate-700 font-bold text-sm">Matching Items - Tap to Add</div>
     <div id="match-list" class="divide-y divide-slate-700 max-h-[60vh] overflow-y-auto"></div>
   </div>
 
-  <!-- No Result -->
   <div id="no-result" class="hidden bg-slate-800 rounded-3xl p-6 text-center border border-slate-700">
     <div class="text-4xl mb-2">🔍</div>
     <p class="font-bold">Item kittiyilla</p>
     <p class="text-xs text-slate-400 mt-1">Spelling / Barcode onnu koodi nokku</p>
   </div>
 
-  <!-- MY LIST - Buttons thazhe -->
   <div class="bg-slate-800 rounded-3xl p-4 border border-slate-700">
     <div class="flex items-center justify-between">
       <h3 class="font-black">My List - <span id="listCount" class="text-sm font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">0 items</span></h3>
@@ -78,12 +72,10 @@
       <span class="text-slate-400 text-sm">Total (MRP)</span>
       <b id="totalAmount" class="text-white">Total: AED 0.00</b>
     </div>
-    <!-- Buttons - List-inte thazhe -->
     <button onclick="exportExcel()" class="w-full mt-4 bg-emerald-600 text-white py-3.5 rounded-2xl font-bold text-[15px]">⬇ Download XLSX</button>
     <button onclick="clearList()" class="w-full mt-2 bg-transparent border border-red-500/50 text-red-400 py-3 rounded-2xl font-bold text-sm">Clear List</button>
   </div>
 
-  <!-- BOTTOM BRAND CARD -->
   <div class="bg-slate-800 rounded-3xl p-4 border border-slate-700 flex items-center gap-4">
     <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shrink-0 overflow-hidden">
       <img src="icon-192.png" onerror="this.style.display='none'" class="w-full h-full object-cover" alt="">
@@ -97,7 +89,6 @@
 
 </div>
 
-<!-- Modal -->
 <div id="item-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="if(event.target===this) closeItemModal()">
   <div class="bg-slate-800 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] overflow-y-auto text-white">
     <div class="flex justify-between items-start">
@@ -115,6 +106,6 @@
   </div>
 </div>
 
-<script src="app.js?v=4"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
