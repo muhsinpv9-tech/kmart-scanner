@@ -1,4 +1,4 @@
-// WELLMART - Item Master | Dropdown + Scanner Enter + .. = Enter
+// WELLMART - Item Master | v15 - CAPITAL Name + Barcode in List + Paste + Barcode Dropdown
 const SHEET_ID = "1ZavPmJyh07AYmTfFzi5JwfUzCsBnKAGjVOEhPMF8oxY";
 const GID = "0";
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
@@ -146,18 +146,23 @@ function showNoResult(){
   if(el) el.classList.remove('hidden');
 }
 
-// --- SEARCH + SCANNER ENTER ---
+function cleanBarcode(s){
+  return (s||'').toString().replace(/[^0-9]/g,'').trim();
+}
+
 function searchEnter(e){
   if(e.key !== 'Enter') return;
   e.preventDefault();
   const inp = document.getElementById('unified-search-input');
   if(!inp) return;
-  const q = inp.value.trim();
-  if(!q) return;
-  // Scanner: Barcode + Enter varum - Exact match undenkil nere Add
-  const exact = PRODUCTS.find(p=>p.barcode===q);
-  if(exact){ addToListFromSearch(exact.barcode); return; }
-  // Barcode alla, name aanenkil - 1 item mathram match aanel athu Add
+  const raw = inp.value.trim();
+  if(!raw) return;
+  const qClean = cleanBarcode(raw);
+  if(qClean.length >= 3){
+    const exact = PRODUCTS.find(p=>cleanBarcode(p.barcode)===qClean);
+    if(exact){ addToListFromSearch(exact.barcode); return; }
+  }
+  const q = raw.toLowerCase();
   const norm = (s)=> (s||'').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
   const words = norm(q).split(' ').filter(w=>w.length>0);
   const filtered = PRODUCTS.filter(p=>{
@@ -165,7 +170,6 @@ function searchEnter(e){
     return words.every(w => hayWords.some(hw => hw.startsWith(w) || hw.includes(w)));
   });
   if(filtered.length===1){ addToListFromSearch(filtered[0].barcode); return; }
-  // Allenkil normal search kanikku, cursor Search-il thanne
   handleSearch();
   focusSearch();
 }
@@ -173,12 +177,16 @@ function searchEnter(e){
 function handleSearch(){
   const inp=document.getElementById('unified-search-input');
   if(!inp) return;
-  const q=inp.value.trim().toLowerCase();
-  if(q.length<3){ hideAll(); return; }
+  const raw = inp.value.trim();
+  if(raw.length<3){ hideAll(); return; }
   if(!PRODUCTS.length) return;
-  const isBarcode = /^\d+$/.test(q);
-  const exact = PRODUCTS.find(p=>p.barcode===q);
-  if(exact && (isBarcode || q.length>=10)){ addToListFromSearch(exact.barcode); return; }
+  const qNum = cleanBarcode(raw);
+  const isBarcodeSearch = /^\d+$/.test(raw.trim());
+  if(isBarcodeSearch && qNum.length>=3){
+    const barcodeMatches = PRODUCTS.filter(p=> cleanBarcode(p.barcode).includes(qNum));
+    if(barcodeMatches.length>0){ showList(barcodeMatches); return; }
+  }
+  const q = raw.toLowerCase();
   const norm = (s)=> (s||'').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
   const words = norm(q).split(' ').filter(w=>w.length>0);
   let filtered = PRODUCTS.filter(p=>{
@@ -191,8 +199,31 @@ function handleSearch(){
       return words.some(w => hayWords.some(hw => hw.startsWith(w)));
     });
   }
+  if(filtered.length===0 && qNum.length>=3){
+    const bm = PRODUCTS.filter(p=> cleanBarcode(p.barcode).includes(qNum));
+    if(bm.length>0){ showList(bm); return; }
+  }
   if(filtered.length>=1) showList(filtered);
   else showNoResult();
+}
+
+function handlePaste(e){
+  // Mobile-il clipboardData kittilla - Default paste nadakan vidu, shesham value eduthu search cheyyu
+  setTimeout(()=>{
+    const inp = document.getElementById('unified-search-input');
+    if(!inp) return;
+    let pasted = inp.value.trim().replace(/[\n\r\t ]/g,'').trim();
+    if(!pasted) return;
+    inp.value = pasted;
+    const qClean = cleanBarcode(pasted);
+    if(qClean.length>=3){
+      const exact = PRODUCTS.find(p=>cleanBarcode(p.barcode)===qClean);
+      if(exact){ addToListFromSearch(exact.barcode); return; }
+      const partial = PRODUCTS.filter(p=>cleanBarcode(p.barcode).includes(qClean));
+      if(partial.length>0){ showList(partial); return; }
+    }
+    handleSearch();
+  }, 60);
 }
 
 function showSingleByBarcode(barcode){
@@ -300,7 +331,7 @@ function openManualPopup(){
   const searchVal = document.getElementById('unified-search-input')?.value?.trim() || '';
   if(searchVal){
     if(/^\d+$/.test(searchVal)) document.getElementById('m-barcode').value = searchVal;
-    else document.getElementById('m-name').value = searchVal;
+    else document.getElementById('m-name').value = searchVal.toUpperCase();
   }
   setTimeout(()=> document.getElementById('m-barcode')?.focus(), 100);
 }
@@ -315,7 +346,8 @@ function closeManualPopup(){
 
 function addManualItem(){
   const barcode = document.getElementById('m-barcode').value.trim().replace(/\.$/,'');
-  const name = document.getElementById('m-name').value.trim();
+  // CAPITAL - Small / Mix type cheythalum CAPITAL aakum
+  const name = document.getElementById('m-name').value.trim().toUpperCase();
   const mrp = parseFloat(document.getElementById('m-mrp').value) || 0;
   const cost = parseFloat(document.getElementById('m-cost').value) || 0;
   const cf = document.getElementById('m-cf').value.trim();
@@ -356,7 +388,7 @@ function addToList(barcode){
   if(!p) return;
   const ex = LIST.find(x=>x.barcode===barcode);
   if(ex) ex.qty += 1;
-  else LIST.push({ barcode: p.barcode, name: p.name, mrp: p.mrp, cost: p.cost, stock: p.stock, cf: p.cf, qty: 1, isManual: !!p.isManual });
+  else LIST.push({ barcode: p.barcode, name: (p.name||'').toUpperCase(), mrp: p.mrp, cost: p.cost, stock: p.stock, cf: p.cf, qty: 1, isManual: !!p.isManual });
   localStorage.setItem('kmart_list', JSON.stringify(LIST));
   renderList();
   showToast('Added: ' + p.name);
@@ -419,8 +451,10 @@ function renderList(){
     const mrpCls = isCostHigh ? 'text-red-400 font-black' : 'text-white';
     const costCls = isCostHigh ? 'text-red-400 font-black' : 'text-slate-400';
     const stockCls = isStockNeg ? 'text-red-400 font-black' : 'text-slate-400';
+    const displayName = (it.name||'').toUpperCase();
     return `<div class="flex justify-between items-center py-3">
-      <div class="pr-2"><b class="${nameCls}">${it.name}</b> ${it.isManual?'<span class="text-[10px] bg-amber-500 text-slate-900 px-1.5 py-0.5 rounded-full font-black">ADDED</span>':''}<br>
+      <div class="pr-2"><b class="${nameCls}">${displayName}</b> ${it.isManual?'<span class="text-[10px] bg-amber-500 text-slate-900 px-1.5 py-0.5 rounded-full font-black">ADDED</span>':''}<br>
+      <small class="text-slate-400 font-mono">Barcode: ${it.barcode}</small><br>
       <small class="${mrpCls}">MRP ${it.mrp.toFixed(2)}</small> <small class="${costCls}">| Cost ${costNum.toFixed(2)} ${isCostHigh?'⚠':''}</small> <small class="${stockCls}">| Stock ${it.stock||'-'} ${isStockNeg?'⚠':''}</small> <small class="text-slate-400">| CF ${it.cf||'-'}</small></div>
       <div class="flex gap-1 items-center shrink-0">
         <button onclick="changeQty('${it.barcode}',-1)" class="w-8 h-8 bg-slate-700 rounded-lg font-bold">-</button>
@@ -442,7 +476,8 @@ function exportExcel(){
     const cf = it.cf || (p ? p.cf : '');
     const cost = it.cost || (p ? p.cost : 0);
     const type = it.isManual ? 'ADDED - NOT IN DATABASE' : '';
-    data.push([String(it.barcode), it.name, it.qty, it.mrp, cost, stock, cf, type]);
+    // CAPITAL Name for Excel
+    data.push([String(it.barcode), (it.name||'').toUpperCase(), it.qty, it.mrp, cost, stock, cf, type]);
   });
   const ws = XLSX.utils.aoa_to_sheet(data);
   const range = XLSX.utils.decode_range(ws['!ref']);
@@ -477,6 +512,7 @@ function exportExcel(){
 
 window.handleSearch=handleSearch;
 window.searchEnter=searchEnter;
+window.handlePaste=handlePaste;
 window.toggleCamera=toggleCamera;
 window.stopCamera=stopCamera;
 window.closeItemModal=closeItemModal;
