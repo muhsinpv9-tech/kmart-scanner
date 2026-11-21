@@ -171,7 +171,7 @@ function openGroupPopup(p){
   const share=document.getElementById('share-btn');
   if(share){
     share.onclick = ()=>{
-      const txt = `${p.name}\nBarcode: ${p.barcode}\nMRP: AED ${p.mrp.toFixed(2)}\nStock: ${p.stock}`;
+      const txt = `${p.name}\nBarcode: ${p.barcode}\nMRP: AED ${p.mrp.toFixed(2)}\nCost: AED ${p.cost.toFixed(2)}\nStock: ${p.stock}\nCF: ${p.cf}`;
       if(navigator.share) navigator.share({text:txt});
       else { navigator.clipboard.writeText(txt); alert('Copied!'); }
     };
@@ -210,13 +210,21 @@ async function stopCamera(){
   if(cont) cont.classList.add('hidden');
 }
 
-// --- LIST / EXCEL ---
+// --- LIST / EXCEL - FIXED ---
 function addToList(barcode){
   const p = PRODUCTS.find(x=>x.barcode===barcode);
   if(!p) return;
   const ex = LIST.find(x=>x.barcode===barcode);
   if(ex) ex.qty += 1;
-  else LIST.push({barcode:p.barcode, name:p.name, mrp:p.mrp, cost:p.cost, qty:1});
+  else LIST.push({
+    barcode: p.barcode,
+    name: p.name,
+    mrp: p.mrp,
+    cost: p.cost,
+    stock: p.stock,
+    cf: p.cf,
+    qty: 1
+  });
   localStorage.setItem('kmart_list', JSON.stringify(LIST));
   renderList();
   alert('Added: '+p.name);
@@ -250,7 +258,7 @@ function renderList(){
   listDiv.innerHTML = LIST.map(it=>{
     const amt = it.mrp*it.qty; total+=amt;
     return `<div class="flex justify-between items-center py-3">
-      <div><b class="text-slate-900">${it.name}</b><br><small class="text-slate-500">AED ${it.mrp.toFixed(2)} x ${it.qty} = AED ${amt.toFixed(2)}</small></div>
+      <div><b class="text-slate-900">${it.name}</b><br><small class="text-slate-500">MRP ${it.mrp.toFixed(2)} | Cost ${Number(it.cost||0).toFixed(2)} | Stock ${it.stock||'-'} | CF ${it.cf||'-'}</small></div>
       <div class="flex gap-1 items-center">
         <button onclick="changeQty('${it.barcode}',-1)" class="w-8 h-8 bg-slate-100 rounded-lg font-bold">-</button>
         <b class="w-6 text-center">${it.qty}</b>
@@ -264,9 +272,18 @@ function renderList(){
 
 function exportExcel(){
   if(!LIST.length){ alert('List empty aanu'); return; }
-  let csv = 'Barcode,Item Name,MRP,Qty,Amount\n';
-  LIST.forEach(it=>{ csv += `"${it.barcode}","${it.name}",${it.mrp},${it.qty},${(it.mrp*it.qty).toFixed(2)}\n`; });
-  const blob = new Blob([csv], {type:'text/csv'});
+  // FIX 1: Qty, MRP, Cost, Stock, CF - Thazhe Total calculate illa
+  // FIX 2: Barcode TEXT format - munnile 0 pokilla
+  let csv = 'Barcode,Item Name,Qty,MRP,Cost Price,Stock,CF\n';
+  LIST.forEach(it=>{
+    const p = PRODUCTS.find(x=>x.barcode===it.barcode);
+    const stock = it.stock || (p ? p.stock : '');
+    const cf = it.cf || (p ? p.cf : '');
+    const cost = it.cost || (p ? p.cost : 0);
+    // Barcode TEXT format: ="012345" -> Excel Text aayi kaanum, 0 pokilla
+    csv += `="""${it.barcode}""","${it.name}",${it.qty},${it.mrp},${cost},"${stock}","${cf}"\n`;
+  });
+  const blob = new Blob(["\uFEFF" + csv], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'kmart-list-' + new Date().toISOString().slice(0,10) + '.csv';
