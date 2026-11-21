@@ -1,4 +1,4 @@
-// WELLMART - Item Master | Cursor Focus + Enter Flow + Letter Only Red
+// WELLMART - Item Master | .. = Enter + Cursor Focus + Letter Only Red
 const SHEET_ID = "1ZavPmJyh07AYmTfFzi5JwfUzCsBnKAGjVOEhPMF8oxY";
 const GID = "0";
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
@@ -8,6 +8,7 @@ let LIST = JSON.parse(localStorage.getItem('kmart_list') || '[]');
 let MANUAL_ITEMS = JSON.parse(localStorage.getItem('kmart_manual') || '[]');
 let html5QrCode = null;
 let cameraOn = false;
+let lastDotTime = 0;
 
 function focusSearch(){
   setTimeout(()=>{
@@ -229,13 +230,33 @@ async function stopCamera(){
   if(cont) cont.classList.add('hidden');
 }
 
-// --- MANUAL: Enter Flow + Number Only ---
+// --- MANUAL: Enter + .. = Next ---
 function manualEnter(e, nextId){
   if(e.key !== 'Enter') return;
   e.preventDefault();
   if(nextId === 'ADD'){ addManualItem(); return; }
   const el = document.getElementById(nextId);
   if(el) el.focus();
+}
+
+function manualDot(e, nextId){
+  if(e.key !== '.') return;
+  const now = Date.now();
+  const isDouble = (now - lastDotTime < 700);
+  lastDotTime = now;
+  if(!isDouble){
+    // Oru . mathram - Decimal aayi pokatte / Pokaruth, kathirikku
+    return;
+  }
+  // .. adichu - Enter aayi kanakku
+  e.preventDefault();
+  lastDotTime = 0;
+  const el = e.target;
+  // Avasheshicha . kalayu - MRP 12.50.. -> 12.50, Barcode 123.. -> 123
+  if(el.value.endsWith('.')) el.value = el.value.slice(0, -1);
+  if(nextId === 'ADD'){ addManualItem(); return; }
+  const next = document.getElementById(nextId);
+  if(next) next.focus();
 }
 
 function onlyNumber(el, allowDecimal, allowMinus){
@@ -245,7 +266,6 @@ function onlyNumber(el, allowDecimal, allowMinus){
     const parts = v.split('.');
     if(parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
   } else if(allowMinus){
-    // Stock: - um number um mathram, Letter pokilla
     const isNeg = v.startsWith('-');
     v = v.replace(/[^0-9]/g,'');
     if(isNeg) v = '-' + v;
@@ -275,7 +295,7 @@ function closeManualPopup(){
 }
 
 function addManualItem(){
-  const barcode = document.getElementById('m-barcode').value.trim();
+  const barcode = document.getElementById('m-barcode').value.trim().replace(/\.$/,'');
   const name = document.getElementById('m-name').value.trim();
   const mrp = parseFloat(document.getElementById('m-mrp').value) || 0;
   const cost = parseFloat(document.getElementById('m-cost').value) || 0;
@@ -452,6 +472,7 @@ window.openManualPopup=openManualPopup;
 window.closeManualPopup=closeManualPopup;
 window.addManualItem=addManualItem;
 window.manualEnter=manualEnter;
+window.manualDot=manualDot;
 window.onlyNumber=onlyNumber;
 window.focusSearch=focusSearch;
 
